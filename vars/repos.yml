@@ -313,9 +313,3 @@ repositories:
     clone_if_missing: true
     remotes:
       origin: "git@github.com:aziz0220/pipmedia.git"
-  - name: "ubuntu22-rebuild"
-    path: "{{ user_home }}/ubuntu22-rebuild"
-    clone_from: "git@github.com:aziz0220/ubuntu-setup.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/ubuntu-setup.git"
