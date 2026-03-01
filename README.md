@@ -54,6 +54,35 @@ fi
 ./scripts/run_rebuild.sh
 ```
 
+## 3b) One command for /home/aziz0220 new distro
+
+From a fresh Ubuntu shell:
+
+```bash
+cd /home
+git clone git@github.com:aziz0220/ubuntu-setup.git
+cd /home/aziz0220/ubuntu22-rebuild
+
+# Copy seed folder from the broken disk to:
+# /home/aziz0220/ubuntu22-rebuild/seed
+# or to --seed-dir and set the path below.
+RECOVERY_SEED_PASSWORD=... ./scripts/full_restore.sh --seed-dir /home/aziz0220/ubuntu22-rebuild/seed --user aziz0220
+```
+
+Dry-run (safe preview) before running live:
+
+```bash
+DRY_RUN=1 ./scripts/full_restore.sh --seed-dir /home/aziz0220/ubuntu22-rebuild/seed --user aziz0220 --recovery-root /mnt/recovery
+```
+
+The full command performs these exact steps on `/home/aziz0220`:
+
+- clone/fetch `git@github.com:aziz0220/ubuntu-setup.git` into `/home/aziz0220/ubuntu22-rebuild`
+- verify seed archive exists
+- regenerate all `vars/` from the seed metadata
+- decrypt seed if encrypted
+- run ansible to restore apt/system/home and clone required repos
+
 `run_rebuild.sh` can also auto-decrypt when password is provided:
 
 ```bash
