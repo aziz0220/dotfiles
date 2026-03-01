@@ -5,17 +5,64 @@
     state: directory
     mode: '0755'
 
-- name: Restore /etc/apt/sources.list
+- name: Read captured apt sources snapshot
+  ansible.builtin.set_fact:
+    _snapshot_sources_content: "{{ lookup('ansible.builtin.file', role_path + '/files/etc_apt_sources.list', errors='ignore') | default('', true) }}"
+
+- name: Check whether snapshot apt sources match target release
+  ansible.builtin.set_fact:
+    _snapshot_sources_matches_release: "{{ _snapshot_sources_content is search('(?m)^deb\\s+\\S+\\s+' ~ ansible_distribution_release ~ '(?:\\s|-)') }}"
+
+- name: Check if deb822 ubuntu.sources exists on target
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+  register: _ubuntu_deb822_sources
+
+- name: Show apt source release mismatch
+  ansible.builtin.debug:
+    msg: >-
+      Skipping captured /etc/apt/sources.list because it does not match target release
+      (target={{ ansible_distribution_release }}). Using target release sources instead.
+  when:
+    - _snapshot_sources_content | length > 0
+    - not _snapshot_sources_matches_release
+
+- name: Restore /etc/apt/sources.list when snapshot matches target release
   ansible.builtin.copy:
     src: etc_apt_sources.list
     dest: /etc/apt/sources.list
     owner: root
     group: root
     mode: '0644'
+  when: _snapshot_sources_matches_release
 
-- name: Restore HashiCorp repo list
+- name: Prefer deb822 sources file when release mismatches and deb822 is available
   ansible.builtin.copy:
-    src: etc_apt_sources_hashicorp.list
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      # Managed by Ansible.
+      # Repositories are configured in /etc/apt/sources.list.d/ubuntu.sources.
+  when:
+    - not _snapshot_sources_matches_release
+    - _ubuntu_deb822_sources.stat.exists
+
+- name: Render distro-aware /etc/apt/sources.list when deb822 sources are unavailable
+  ansible.builtin.template:
+    src: etc_apt_sources.list.j2
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - not _snapshot_sources_matches_release
+    - not _ubuntu_deb822_sources.stat.exists
+
+- name: Restore HashiCorp repo list with target distro codename
+  ansible.builtin.template:
+    src: etc_apt_sources_hashicorp.list.j2
     dest: /etc/apt/sources.list.d/hashicorp.list
     owner: root
     group: root

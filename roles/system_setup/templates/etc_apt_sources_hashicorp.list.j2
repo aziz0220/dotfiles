@@ -1,0 +1,2 @@
+{% set apt_arch = 'amd64' if ansible_architecture in ['x86_64', 'amd64'] else ('arm64' if ansible_architecture in ['aarch64', 'arm64'] else ansible_architecture) %}
+deb [arch={{ apt_arch }} signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main

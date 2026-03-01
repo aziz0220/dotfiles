@@ -3,10 +3,28 @@ set -euo pipefail
 
 PLAYBOOK="${ANSIBLE_PLAYBOOK_FILE:-local.yml}"
 TAG_SET="${1:-all}"
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+BOOTSTRAP_HOME_DIR="${BOOTSTRAP_HOME_DIR:-$REPO_DIR/.bootstrap/home}"
+ENCRYPTED_HOME_BUNDLE="${ENCRYPTED_HOME_BUNDLE:-$REPO_DIR/vault/home-secrets.tar.gz.aes256}"
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then
   echo "ERROR: ansible-playbook is not installed. Run ./install first." >&2
   exit 1
+fi
+
+if [ ! -d "$BOOTSTRAP_HOME_DIR" ]; then
+  if [ -f "$ENCRYPTED_HOME_BUNDLE" ]; then
+    if [ -z "${SETUP_SECRETS_PASSWORD-}" ]; then
+      echo "ERROR: missing $BOOTSTRAP_HOME_DIR and encrypted bundle exists at $ENCRYPTED_HOME_BUNDLE." >&2
+      echo "Set SETUP_SECRETS_PASSWORD and rerun ./ansible-run to decrypt automatically." >&2
+      exit 1
+    fi
+    "$REPO_DIR/scripts/decrypt_home_bundle.sh" "$ENCRYPTED_HOME_BUNDLE" "$BOOTSTRAP_HOME_DIR" "SETUP_SECRETS_PASSWORD"
+  else
+    echo "ERROR: missing bootstrap home source at $BOOTSTRAP_HOME_DIR." >&2
+    echo "Create it or provide an encrypted bundle at $ENCRYPTED_HOME_BUNDLE." >&2
+    exit 1
+  fi
 fi
 
 ANSIBLE_CMD=(ansible-playbook "$PLAYBOOK")

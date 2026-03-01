@@ -15,9 +15,26 @@
     state: present
     install_recommends: false
 
-- name: Probe snapshot package availability on target release
-  ansible.builtin.command:
-    cmd: "apt-cache show {{ item }}"
+- name: Resolve snapshot package install targets on target release
+  ansible.builtin.shell: |
+    set -euo pipefail
+    pkg="{{ item }}"
+    candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {c=$2} END {print c}')"
+    if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then
+      echo "$pkg"
+      exit 0
+    fi
+    if [[ "$pkg" != *t64 ]]; then
+      t64_pkg="${pkg}t64"
+      t64_candidate="$(apt-cache policy "$t64_pkg" | awk '/Candidate:/ {c=$2} END {print c}')"
+      if [ -n "$t64_candidate" ] && [ "$t64_candidate" != "(none)" ]; then
+        echo "$t64_pkg"
+        exit 0
+      fi
+    fi
+    exit 1
+  args:
+    executable: /bin/bash
   loop: "{{ packages | unique }}"
   register: _package_probe
   changed_when: false
@@ -29,13 +46,21 @@
       {{
         _package_probe.results
         | selectattr('rc', 'equalto', 0)
-        | map(attribute='item')
+        | map(attribute='stdout')
+        | reject('equalto', '')
         | list
+        | unique
       }}
 
 - name: Build unavailable package list
   ansible.builtin.set_fact:
-    _missing_packages: "{{ (packages | unique) | difference(_available_packages) }}"
+    _missing_packages: >-
+      {{
+        _package_probe.results
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
 
 - name: Exclude self-managed Ansible packages from package loop
   ansible.builtin.set_fact:
@@ -70,11 +95,22 @@
   ansible.builtin.set_fact:
     _failed_package_installs: >-
       {{
-        _package_install_results.results
-        | selectattr('failed', 'defined')
-        | selectattr('failed')
-        | map(attribute='item')
-        | list
+        (
+          _package_install_results.results
+          | selectattr('failed', 'defined')
+          | selectattr('failed')
+          | map(attribute='item')
+          | list
+        )
+        +
+        (
+          _package_install_results.results
+          | selectattr('rc', 'defined')
+          | rejectattr('rc', 'equalto', 0)
+          | map(attribute='item')
+          | list
+        )
+        | unique
       }}
   when: _package_install_results is defined
 

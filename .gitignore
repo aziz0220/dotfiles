@@ -1,10 +1,8 @@
-seed/
-seed/home-config.tar.gz
-seed/home-config.tar.gz.aes256
-seed/home
-seed/system
-seed/metadata
-seed/*.tar.gz*
+.bootstrap/home
+.bootstrap/*.tar
+.bootstrap/*.tar.gz
+.bootstrap/*.tmp
+.bootstrap/*.dec
 vault/*.tar
 vault/*.tar.gz
 vault/*.tmp

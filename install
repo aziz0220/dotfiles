@@ -12,8 +12,6 @@ else
 fi
 
 "${SUDO[@]}" apt-get update -y
-"${SUDO[@]}" apt-get install -y software-properties-common
-"${SUDO[@]}" apt-add-repository --yes --update ppa:ansible/ansible
 "${SUDO[@]}" apt-get install -y ansible curl git
 
 echo "ansible installed. Run: ./ansible-run"

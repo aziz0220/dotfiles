@@ -1,1 +1,0 @@
-aziz0220:x:1000:1000:,,,:/home/aziz0220:/usr/bin/zsh

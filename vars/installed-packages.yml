@@ -1,18 +1,24 @@
 packages:
+  - acl
   - adduser
   - adwaita-icon-theme
   - alsa-topology-conf
   - alsa-ucm-conf
-  - amazon-q
   - ansible
+  - ansible-core
   - apparmor
   - apport
+  - apport-core-dump-handler
   - apport-symptoms
+  - appstream
   - apt
   - apt-utils
   - aspell
   - aspell-en
+  - at-spi2-common
   - at-spi2-core
+  - attr
+  - augeas-lenses
   - autoconf
   - automake
   - autotools-dev
@@ -29,8 +35,10 @@ packages:
   - binutils-x86-64-linux-gnu
   - bsdextrautils
   - bsdutils
+  - btrfs-progs
   - bubblewrap
   - build-essential
+  - busybox-initramfs
   - busybox-static
   - byobu
   - bzip2
@@ -38,6 +46,7 @@ packages:
   - ca-certificates-java
   - clangd
   - clangd-14
+  - clangd-18
   - cloud-guest-utils
   - cloud-init
   - cmake
@@ -50,10 +59,22 @@ packages:
   - cpio
   - cpp
   - cpp-11
+  - cpp-13
+  - cpp-13-x86-64-linux-gnu
+  - cpp-x86-64-linux-gnu
+  - cpu-checker
   - cron
+  - cron-daemon-common
+  - cryptsetup-bin
   - curl
   - dash
+  - db-util
+  - db5.3-util
   - dbus
+  - dbus-bin
+  - dbus-daemon
+  - dbus-session-bus-common
+  - dbus-system-bus-common
   - dbus-user-session
   - dbus-x11
   - dconf-gsettings-backend
@@ -63,54 +84,82 @@ packages:
   - debianutils
   - desktop-file-utils
   - dh-elpa-helper
+  - dhcpcd-base
   - dictionaries-common
   - diffutils
   - dirmngr
   - distro-info
   - distro-info-data
+  - dmeventd
   - dmidecode
   - dmsetup
   - dosfstools
   - dpkg
   - dpkg-dev
+  - dracut-install
   - dvisvgm
   - e2fsprogs
+  - e2fsprogs-l10n
   - eatmydata
   - ed
   - eject
   - emacsen-common
   - enchant-2
+  - eslint
+  - ethtool
+  - exfatprogs
+  - extlinux
+  - f2fs-tools
   - fakeroot
   - fdisk
   - file
+  - finalrd
   - findutils
   - fontconfig
   - fontconfig-config
   - fonts-dejavu-core
   - fonts-dejavu-extra
+  - fonts-dejavu-mono
   - fonts-droid-fallback
+  - fonts-freefont-ttf
+  - fonts-ipafont-gothic
   - fonts-lato
+  - fonts-liberation
   - fonts-lmodern
+  - fonts-noto-color-emoji
   - fonts-noto-mono
   - fonts-texgyre
+  - fonts-tlwg-loma-otf
   - fonts-ubuntu
+  - fonts-unifont
   - fonts-urw-base35
+  - fonts-wqy-zenhei
   - friendly-recovery
   - ftp
   - fuse3
   - g++
   - g++-11
+  - g++-13
+  - g++-13-x86-64-linux-gnu
+  - g++-x86-64-linux-gnu
   - gawk
   - gcc
   - gcc-11
   - gcc-11-base
   - gcc-12-base
+  - gcc-13
+  - gcc-13-base
+  - gcc-13-x86-64-linux-gnu
+  - gcc-14-base
+  - gcc-x86-64-linux-gnu
   - gdisk
   - gettext
   - gettext-base
   - gh
   - ghostscript
+  - gir1.2-girepository-2.0
   - gir1.2-glib-2.0
+  - gir1.2-nautilus-4.0
   - gir1.2-packagekitglib-1.0
   - git
   - git-lfs
@@ -123,6 +172,7 @@ packages:
   - gnupg-utils
   - golang-1.18-go
   - golang-1.18-src
+  - golang-1.22-src
   - golang-src
   - gpg
   - gpg-agent
@@ -141,26 +191,36 @@ packages:
   - gstreamer1.0-plugins-good
   - gstreamer1.0-x
   - gtk-update-icon-cache
+  - guestfish
+  - guestfs-tools
   - gyp
   - gzip
+  - handlebars
   - hdparm
+  - hfsplus
   - hicolor-icon-theme
   - hostname
   - htop
   - humanity-icon-theme
   - hunspell-en-us
+  - ibverbs-providers
   - ieee-data
   - imagemagick
   - imagemagick-6-common
   - imagemagick-6.q16
+  - inetutils-telnet
   - info
   - init
   - init-system-helpers
+  - initramfs-tools-bin
+  - initramfs-tools-core
   - install-info
   - iproute2
   - iptables
   - iputils-ping
   - iputils-tracepath
+  - ipxe-qemu
+  - ipxe-qemu-256k-compat-efi-roms
   - irqbalance
   - isc-dhcp-client
   - isc-dhcp-common
@@ -169,7 +229,10 @@ packages:
   - javascript-common
   - kbd
   - keyboard-configuration
+  - keyboxd
+  - klibc-utils
   - kmod
+  - krb5-locales
   - landscape-client
   - landscape-common
   - less
@@ -177,7 +240,9 @@ packages:
   - lib32stdc++6
   - libaa1
   - libabsl20210324
+  - libabsl20220623t64
   - libacl1
+  - libaio1t64
   - libalgorithm-diff-perl
   - libalgorithm-diff-xs-perl
   - libalgorithm-merge-perl
@@ -185,26 +250,29 @@ packages:
   - libapache-pom-java
   - libapparmor1
   - libappstream4
-  - libapt-pkg6.0
-  - libarchive13
+  - libappstream5
+  - libapt-pkg6.0t64
+  - libarchive13t64
   - libargon2-1
   - libasan6
-  - libasound2
+  - libasan8
   - libasound2-data
+  - libasound2t64
   - libaspell15
   - libassuan0
   - libasyncns0
-  - libatk-bridge2.0-0
+  - libatk-bridge2.0-0t64
   - libatk-wrapper-java
   - libatk-wrapper-java-jni
-  - libatk1.0-0
+  - libatk1.0-0t64
   - libatk1.0-data
   - libatm1
   - libatomic1
-  - libatspi2.0-0
+  - libatspi2.0-0t64
   - libattr1
   - libaudit-common
   - libaudit1
+  - libaugeas0
   - libauthen-sasl-perl
   - libavahi-client3
   - libavahi-common-data
@@ -214,13 +282,17 @@ packages:
   - libayatana-ido3-0.4-0
   - libayatana-indicator3-7
   - libb2-1
+  - libbfio1
   - libbinutils
   - libblkid1
+  - libboost-iostreams1.83.0
+  - libboost-thread1.83.0
   - libbpf0
+  - libbpf1
+  - libbrlapi0.8
   - libbrotli1
   - libbsd0
   - libbz2-1.0
-  - libc-ares2
   - libc-bin
   - libc-dev-bin
   - libc-devtools
@@ -234,11 +306,15 @@ packages:
   - libcap-ng0
   - libcap2
   - libcap2-bin
+  - libcares2
+  - libcbor0.10
   - libcbor0.8
   - libcc1-0
   - libcdparanoia0
   - libclang-common-14-dev
-  - libclang-cpp14
+  - libclang-common-18-dev
+  - libclang-cpp14t64
+  - libclang-cpp18
   - libclone-perl
   - libcmark-gfm-extensions0.29.0.gfm.3
   - libcmark-gfm0.29.0.gfm.3
@@ -246,25 +322,29 @@ packages:
   - libcom-err2
   - libcommons-logging-java
   - libcommons-parent-java
+  - libconfig9
   - libcrypt-dev
   - libcrypt1
   - libcryptsetup12
   - libctf-nobfd0
   - libctf0
-  - libcups2
-  - libcurl3-gnutls
-  - libcurl4
+  - libcups2t64
+  - libcurl3t64-gnutls
+  - libcurl4t64
   - libdata-dump-perl
   - libdatrie1
   - libdav1d5
-  - libdb5.3
+  - libdaxctl1
+  - libdb5.3t64
   - libdbus-1-3
   - libdbusmenu-glib4
   - libdbusmenu-gtk3-4
   - libdconf1
   - libde265-0
   - libdebconfclient0
+  - libdecor-0-0
   - libdeflate0
+  - libdevmapper-event1.02.1
   - libdevmapper1.02.1
   - libdjvulibre-text
   - libdjvulibre21
@@ -277,26 +357,29 @@ packages:
   - libdrm-nouveau2
   - libdrm-radeon1
   - libdrm2
-  - libdv4
-  - libdw1
+  - libduktape207
+  - libdv4t64
+  - libdw1t64
   - libeatmydata1
   - libedit2
   - libegl-mesa0
   - libegl1
-  - libelf1
+  - libelf1t64
   - libenchant-2-2
   - libencode-locale-perl
   - libepoxy0
   - liberror-perl
   - libestr0
   - libevdev2
-  - libevent-core-2.1-7
+  - libevent-core-2.1-7t64
+  - libewf2
   - libexpat1
   - libexpat1-dev
-  - libext2fs2
+  - libext2fs2t64
   - libfakeroot
   - libfastjson4
   - libfdisk1
+  - libfdt1
   - libffi8
   - libfftw3-double3
   - libfido2-1
@@ -305,6 +388,7 @@ packages:
   - libfile-fcntllock-perl
   - libfile-listing-perl
   - libfile-mimeinfo-perl
+  - libflac12t64
   - libflac8
   - libfont-afm-perl
   - libfontbox-java
@@ -316,23 +400,25 @@ packages:
   - libfuse3-3
   - libgbm1
   - libgcc-11-dev
+  - libgcc-13-dev
   - libgcc-s1
   - libgcrypt20
   - libgd3
-  - libgdbm-compat4
-  - libgdbm6
+  - libgdbm-compat4t64
+  - libgdbm6t64
   - libgdk-pixbuf-2.0-0
   - libgdk-pixbuf2.0-bin
   - libgdk-pixbuf2.0-common
   - libgif7
   - libgirepository-1.0-1
+  - libgl-dev
   - libgl1
   - libgl1-amber-dri
   - libgl1-mesa-dri
-  - libgl1-mesa-glx
-  - libglapi-mesa
+  - libglapi-amber
   - libgles2
   - libglib2.0-0
+  - libglib2.0-0t64
   - libglib2.0-bin
   - libglib2.0-data
   - libglvnd0
@@ -342,30 +428,43 @@ packages:
   - libgmp-dev
   - libgmp10
   - libgmpxx4ldbl
-  - libgnutls30
+  - libgnutls30t64
   - libgomp1
+  - libgpg-error-l10n
   - libgpg-error0
   - libgpm2
+  - libgprofng0
   - libgraphene-1.0-0
   - libgraphite2-3
-  - libgrpc++1
-  - libgrpc10
-  - libgs9
-  - libgs9-common
+  - libgrpc++1.51t64
+  - libgrpc29t64
+  - libgs-common
+  - libgs10
+  - libgs10-common
   - libgssapi-krb5-2
   - libgstreamer-gl1.0-0
   - libgstreamer-plugins-base1.0-0
   - libgstreamer-plugins-good1.0-0
   - libgstreamer1.0-0
   - libgtk-3-0
+  - libgtk-3-0t64
   - libgtk-3-bin
   - libgtk-3-common
+  - libgtk2.0-0t64
+  - libgtk2.0-common
   - libgtkd-3-0
   - libgudev-1.0-0
+  - libguestfs-tools
+  - libguestfs0t64
   - libharfbuzz-icu0
   - libharfbuzz0b
+  - libheif-plugin-aomdec
+  - libheif-plugin-aomenc
+  - libheif-plugin-libde265
   - libheif1
-  - libhogweed6
+  - libhfsp0t64
+  - libhivex0
+  - libhogweed6t64
   - libhtml-form-perl
   - libhtml-format-perl
   - libhtml-parser-perl
@@ -377,15 +476,20 @@ packages:
   - libhttp-message-perl
   - libhttp-negotiate-perl
   - libhunspell-1.7-0
+  - libhwasan0
   - libhyphen0
+  - libibverbs1
   - libice-dev
   - libice6
   - libicu70
+  - libicu74
   - libidn12
   - libidn2-0
   - libiec61883-0
   - libijs-0.35
   - libilmbase25
+  - libimath-3-1-29t64
+  - libinih1
   - libinput-bin
   - libinput10
   - libio-html-perl
@@ -395,6 +499,7 @@ packages:
   - libip6tc2
   - libipc-system-simple-perl
   - libisc-export1105
+  - libiscsi7
   - libisl23
   - libitm1
   - libjack-jackd2-0
@@ -404,25 +509,30 @@ packages:
   - libjbig2dec0
   - libjpeg-turbo8
   - libjpeg8
+  - libjs-async
   - libjs-events
   - libjs-highlight.js
   - libjs-inherits
   - libjs-is-typedarray
   - libjs-jquery
+  - libjs-prettify
   - libjs-psl
+  - libjs-regenerate
   - libjs-source-map
   - libjs-sphinxdoc
   - libjs-sprintf-js
   - libjs-typedarray-to-buffer
   - libjs-underscore
+  - libjs-util
   - libjson-c5
   - libjson-glib-1.0-0
   - libjson-glib-1.0-common
   - libjsoncpp25
   - libjxr-tools
-  - libjxr0
+  - libjxr0t64
   - libk5crypto3
   - libkeyutils1
+  - libklibc
   - libkmod2
   - libkpathsea6
   - libkrb5-3
@@ -431,9 +541,13 @@ packages:
   - liblcms2-2
   - libldap-2.5-0
   - libldap-common
+  - libldap2
+  - liblerc4
   - libllvm11
-  - libllvm14
+  - libllvm14t64
   - libllvm15
+  - libllvm18
+  - libllvm20
   - liblmdb0
   - liblocale-gettext-perl
   - liblqr-1-0
@@ -442,16 +556,21 @@ packages:
   - libltdl7
   - liblua5.1-0
   - liblua5.1-0-dev
+  - liblua5.3-0
+  - liblua5.4-0
+  - liblvm2cmd2.03
   - liblwp-mediatypes-perl
   - liblwp-protocol-https-perl
   - liblz4-1
   - liblzma5
   - liblzo2-2
   - libmagic-mgc
-  - libmagic1
+  - libmagic1t64
   - libmagickcore-6.q16-6
-  - libmagickcore-6.q16-6-extra
+  - libmagickcore-6.q16-7-extra
+  - libmagickcore-6.q16-7t64
   - libmagickwand-6.q16-6
+  - libmagickwand-6.q16-7t64
   - libmailtools-perl
   - libmanette-0.2-0
   - libmaxminddb0
@@ -463,45 +582,53 @@ packages:
   - libmpc3
   - libmpdec3
   - libmpfr6
-  - libmpg123-0
-  - libmtdev1
+  - libmpg123-0t64
+  - libmtdev1t64
+  - libnautilus-extension4
   - libncurses-dev
   - libncurses6
   - libncursesw6
+  - libndctl6
   - libnet-dbus-perl
   - libnet-http-perl
   - libnet-smtp-ssl-perl
   - libnet-ssleay-perl
   - libnetfilter-conntrack3
   - libnetpbm10
+  - libnetpbm11t64
   - libnetplan0
-  - libnettle8
+  - libnetplan1
+  - libnettle8t64
   - libnewt0.52
   - libnfnetlink0
+  - libnfs14
   - libnftables1
   - libnftnl11
   - libnghttp2-14
   - libnl-3-200
   - libnl-genl-3-200
+  - libnl-route-3-200
   - libnode-dev
-  - libnode72
+  - libnode109
   - libnotify-bin
   - libnotify4
-  - libnpth0
+  - libnpth0t64
   - libnsl-dev
   - libnsl2
   - libnspr4
   - libnss-systemd
   - libnss3
-  - libntfs-3g89
+  - libntfs-3g89t64
   - libnuma1
   - libogg0
+  - libopenexr-3-1-30
   - libopenexr25
   - libopengl-dev
   - libopengl0
   - libopenjp2-7
   - libopus0
-  - liborc-0.4-0
+  - liborc-0.4-0t64
+  - libosinfo-l10n
   - libp11-kit0
   - libpackagekit-glib2-18
   - libpam-cap
@@ -515,8 +642,8 @@ packages:
   - libpangoft2-1.0-0
   - libpaper-utils
   - libpaper1
-  - libparted2
-  - libpcap0.8
+  - libparted2t64
+  - libpcap0.8t64
   - libpci3
   - libpciaccess0
   - libpcre2-16-0
@@ -524,55 +651,76 @@ packages:
   - libpcre3
   - libpcsclite1
   - libpdfbox-java
-  - libperl5.34
+  - libperl5.38t64
+  - libphobos2-ldc-shared106
   - libphobos2-ldc-shared98
   - libpipeline1
-  - libpipewire-0.3-0
+  - libpipewire-0.3-0t64
   - libpipewire-0.3-common
   - libpipewire-0.3-modules
   - libpixman-1-0
+  - libpkgconf3
   - libplymouth5
-  - libpng16-16
+  - libpmem1
+  - libpmemobj1
+  - libpng16-16t64
   - libpolkit-agent-1-0
   - libpolkit-gobject-1-0
   - libpopt0
+  - libpotrace0
+  - libproc2-0
   - libprocps8
   - libprotobuf23
+  - libprotobuf32t64
+  - libprotoc32t64
   - libproxy1v5
-  - libpsl5
+  - libpsl5t64
   - libptexenc1
   - libpthread-stubs0-dev
   - libpulse0
-  - libpulsedsp
   - libpython3-dev
   - libpython3-stdlib
   - libpython3.10
   - libpython3.10-dev
   - libpython3.10-minimal
   - libpython3.10-stdlib
-  - libqt6concurrent6
-  - libqt6core6
-  - libqt6dbus6
-  - libqt6gui6
-  - libqt6network6
-  - libqt6opengl6
-  - libqt6opengl6-dev
-  - libqt6openglwidgets6
-  - libqt6printsupport6
-  - libqt6sql6
+  - libpython3.12-dev
+  - libpython3.12-minimal
+  - libpython3.12-stdlib
+  - libpython3.12t64
+  - libqt6concurrent6t64
+  - libqt6core6t64
+  - libqt6dbus6t64
+  - libqt6gui6t64
+  - libqt6network6t64
+  - libqt6opengl6t64
+  - libqt6openglwidgets6t64
+  - libqt6printsupport6t64
   - libqt6sql6-sqlite
-  - libqt6test6
-  - libqt6widgets6
-  - libqt6xml6
+  - libqt6sql6t64
+  - libqt6test6t64
+  - libqt6widgets6t64
+  - libqt6xml6t64
   - libquadmath0
+  - librados2
   - libraw1394-11
+  - libraw23t64
+  - librbd1
+  - librdmacm1t64
+  - libre2-10
   - libreadline-dev
-  - libreadline8
+  - libreadline8t64
+  - libreiserfscore0t64
   - librhash0
+  - libroc0.3
+  - librpm9t64
+  - librpmio9t64
   - librsvg2-2
   - librsvg2-common
   - librtmp1
+  - libruby
   - libruby3.0
+  - libruby3.2
   - libsamplerate0
   - libsasl2-2
   - libsasl2-modules
@@ -586,29 +734,35 @@ packages:
   - libsensors-config
   - libsensors5
   - libsepol2
+  - libsframe1
+  - libsharpyuv0
   - libshout3
   - libsigsegv2
   - libslang2
   - libsm-dev
   - libsm6
   - libsmartcols1
+  - libsnapd-glib-2-1
   - libsndfile1
   - libsodium23
+  - libsoup-2.4-1
   - libsoup-3.0-0
   - libsoup-3.0-common
-  - libsoup2.4-1
   - libsoup2.4-common
   - libspa-0.2-modules
   - libspeex1
+  - libspeexdsp1
   - libsqlite3-0
   - libss2
   - libssh-4
   - libssl-dev
-  - libssl3
+  - libssl3t64
   - libstdc++-11-dev
+  - libstdc++-13-dev
   - libstdc++6
   - libstemmer0d
   - libsynctex2
+  - libsystemd-shared
   - libsystemd0
   - libtag1v5
   - libtag1v5-vanilla
@@ -617,6 +771,7 @@ packages:
   - libtdb1
   - libteckit0
   - libtexlua53
+  - libtexlua53-5
   - libtexluajit2
   - libtext-charwidth-perl
   - libtext-iconv-perl
@@ -626,39 +781,52 @@ packages:
   - libtheora0
   - libtie-ixhash-perl
   - libtiff5
+  - libtiff6
   - libtimedate-perl
   - libtinfo6
   - libtirpc-common
   - libtirpc-dev
-  - libtirpc3
+  - libtirpc3t64
   - libtk8.6
   - libtool
   - libtool-bin
   - libtry-tiny-perl
   - libts0
+  - libts0t64
   - libtsan0
+  - libtsan2
   - libtwolame0
   - libubsan1
   - libuchardet0
   - libudev1
   - libunistring2
+  - libunistring5
   - libunwind8
+  - liburcu8t64
   - liburi-perl
+  - liburing2
   - libusb-1.0-0
+  - libusbredirparser1t64
   - libutempter0
   - libuuid1
-  - libuv1
   - libuv1-dev
-  - libv4l-0
-  - libv4lconvert0
+  - libuv1t64
+  - libv4l-0t64
+  - libv4lconvert0t64
+  - libvhdi1
+  - libvirt-l10n
   - libvisual-0.4-0
+  - libvmdk1
   - libvorbis0a
   - libvorbisenc2
   - libvorbisfile3
   - libvpx7
+  - libvpx9
   - libvte-2.91-0
   - libvte-2.91-common
   - libvted-3-0
+  - libvulkan-dev
+  - libvulkan1
   - libwacom-bin
   - libwacom-common
   - libwacom9
@@ -733,14 +901,16 @@ packages:
   - libxslt1.1
   - libxss1
   - libxt-dev
-  - libxt6
+  - libxt6t64
   - libxtables12
   - libxtst6
   - libxv1
   - libxxf86dga1
   - libxxf86vm1
   - libxxhash0
+  - libyajl2
   - libyaml-0-2
+  - libyara10
   - libzstd1
   - libzzip-0-13
   - linux-libc-dev
@@ -753,8 +923,11 @@ packages:
   - lsb-release
   - lshw
   - lsof
+  - lsscsi
   - lto-disabled-list
   - lua5.1
+  - lvm2
+  - lzop
   - m4
   - mailcap
   - make
@@ -762,10 +935,13 @@ packages:
   - manpages
   - manpages-dev
   - mawk
+  - mdadm
   - media-types
-  - mime-support
+  - mesa-libgallium
   - motd-news-config
   - mount
+  - msr-tools
+  - mtools
   - mtr-tiny
   - nano
   - ncurses-base
@@ -773,143 +949,332 @@ packages:
   - netbase
   - netcat-openbsd
   - netpbm
+  - netplan-generator
   - netplan.io
   - networkd-dispatcher
   - nftables
   - node-abab
   - node-abbrev
+  - node-acorn
   - node-agent-base
+  - node-ajv
+  - node-ajv-keywords
+  - node-ampproject-remapping
+  - node-ansi-escapes
   - node-ansi-regex
   - node-ansi-styles
   - node-ansistyles
+  - node-anymatch
   - node-aproba
   - node-archy
   - node-are-we-there-yet
   - node-argparse
   - node-arrify
   - node-asap
+  - node-assert
+  - node-async
+  - node-async-each
   - node-asynckit
+  - node-auto-bind
+  - node-babel-helper-define-polyfill-provider
+  - node-babel-plugin-add-module-exports
+  - node-babel-plugin-lodash
+  - node-babel-plugin-polyfill-corejs2
+  - node-babel-plugin-polyfill-corejs3
+  - node-babel-plugin-polyfill-regenerator
+  - node-babel7
+  - node-babel7-runtime
   - node-balanced-match
+  - node-base
+  - node-base64-js
+  - node-binary-extensions
   - node-brace-expansion
+  - node-braces
+  - node-browserslist
   - node-builtins
+  - node-busboy
   - node-cacache
+  - node-cache-base
+  - node-camelcase
+  - node-caniuse-lite
   - node-chalk
+  - node-chokidar
   - node-chownr
+  - node-chrome-trace-event
+  - node-ci-info
+  - node-cjs-module-lexer
   - node-clean-yaml-object
+  - node-cli-boxes
+  - node-cli-cursor
   - node-cli-table
+  - node-cli-truncate
+  - node-cliui
   - node-clone
+  - node-clone-deep
+  - node-collection-visit
   - node-color-convert
   - node-color-name
   - node-colors
   - node-columnify
   - node-combined-stream
   - node-commander
+  - node-commondir
+  - node-concat-stream
   - node-console-control-strings
+  - node-convert-source-map
   - node-copy-concurrently
+  - node-core-js
+  - node-core-js-compat
+  - node-core-js-pure
   - node-core-util-is
   - node-coveralls
+  - node-css-loader
+  - node-css-selector-tokenizer
   - node-cssom
   - node-cssstyle
+  - node-data-uri-to-buffer
+  - node-debbundle-es-to-primitive
   - node-debug
+  - node-decamelize
   - node-decompress-response
+  - node-deep-equal
+  - node-deep-is
   - node-defaults
+  - node-define-properties
+  - node-define-property
+  - node-defined
+  - node-del
   - node-delayed-stream
   - node-delegates
   - node-depd
   - node-diff
+  - node-doctrine
+  - node-electron-to-chromium
   - node-encoding
   - node-end-of-stream
+  - node-enhanced-resolve
+  - node-entities
   - node-err-code
+  - node-errno
+  - node-error-ex
+  - node-es-abstract
+  - node-es-module-lexer
+  - node-es6-error
   - node-escape-string-regexp
+  - node-escodegen
+  - node-eslint-scope
+  - node-eslint-utils
+  - node-eslint-visitor-keys
+  - node-espree
   - node-esprima
+  - node-esquery
+  - node-esrecurse
+  - node-estraverse
+  - node-esutils
   - node-events
   - node-fancy-log
+  - node-fast-deep-equal
+  - node-fast-levenshtein
   - node-fetch
+  - node-file-entry-cache
+  - node-fill-range
+  - node-find-cache-dir
+  - node-find-up
+  - node-flat-cache
+  - node-flatted
+  - node-for-in
+  - node-for-own
   - node-foreground-child
   - node-form-data
+  - node-fs-readdir-recursive
   - node-fs-write-stream-atomic
   - node-fs.realpath
   - node-function-bind
+  - node-functional-red-black-tree
   - node-gauge
+  - node-get-caller-file
   - node-get-stream
+  - node-get-value
   - node-glob
+  - node-glob-parent
+  - node-globals
+  - node-globby
   - node-got
   - node-graceful-fs
   - node-growl
   - node-gyp
   - node-has-flag
   - node-has-unicode
+  - node-has-value
+  - node-has-values
   - node-hosted-git-info
+  - node-http-proxy-agent
   - node-https-proxy-agent
   - node-iconv-lite
+  - node-icss-utils
+  - node-ieee754
   - node-iferr
+  - node-ignore
   - node-imurmurhash
   - node-indent-string
   - node-inflight
   - node-inherits
   - node-ini
+  - node-interpret
   - node-ip
   - node-ip-regex
+  - node-is-arrayish
+  - node-is-binary-path
   - node-is-buffer
+  - node-is-descriptor
+  - node-is-extendable
+  - node-is-extglob
+  - node-is-glob
+  - node-is-number
+  - node-is-path-cwd
+  - node-is-path-inside
   - node-is-plain-obj
+  - node-is-plain-object
+  - node-is-primitive
+  - node-is-stream
   - node-is-typedarray
+  - node-is-windows
   - node-isarray
   - node-isexe
+  - node-isobject
+  - node-istanbul
+  - node-jest-debbundle
+  - node-jest-worker
+  - node-js-tokens
   - node-js-yaml
   - node-jsdom
+  - node-jsesc
   - node-json-buffer
   - node-json-parse-better-errors
+  - node-json-schema
+  - node-json-schema-traverse
+  - node-json-stable-stringify
+  - node-json5
+  - node-jsonify
   - node-jsonparse
   - node-kind-of
   - node-lcov-parse
+  - node-levn
+  - node-loader-runner
+  - node-locate-path
+  - node-lodash
   - node-lodash-packages
   - node-log-driver
   - node-lowercase-keys
   - node-lru-cache
+  - node-make-dir
+  - node-map-visit
+  - node-memfs
+  - node-memory-fs
+  - node-merge-stream
+  - node-micromatch
   - node-mime
   - node-mime-types
   - node-mimic-response
   - node-minimatch
   - node-minimist
   - node-minipass
+  - node-mixin-deep
   - node-mkdirp
   - node-move-concurrently
   - node-ms
   - node-mute-stream
+  - node-n3
   - node-negotiator
+  - node-neo-async
   - node-nopt
   - node-normalize-package-data
+  - node-normalize-path
   - node-npm-bundled
   - node-npm-package-arg
+  - node-npm-run-path
   - node-npmlog
   - node-object-assign
+  - node-object-inspect
+  - node-object-visit
   - node-once
   - node-opener
+  - node-optimist
+  - node-optionator
   - node-osenv
   - node-p-cancelable
+  - node-p-limit
+  - node-p-locate
   - node-p-map
+  - node-parse-json
+  - node-parse5
+  - node-pascalcase
+  - node-path-dirname
+  - node-path-exists
   - node-path-is-absolute
+  - node-path-is-inside
+  - node-path-type
+  - node-picocolors
+  - node-pify
+  - node-pkg-dir
+  - node-postcss
+  - node-postcss-modules-extract-imports
+  - node-postcss-modules-values
+  - node-postcss-value-parser
+  - node-prelude-ls
   - node-process-nextick-args
+  - node-progress
   - node-promise-inflight
   - node-promise-retry
   - node-promzard
+  - node-prr
   - node-psl
   - node-pump
   - node-punycode
+  - node-querystringify
   - node-quick-lru
+  - node-randombytes
   - node-read
   - node-read-package-json
+  - node-read-pkg
   - node-readable-stream
+  - node-readdirp
+  - node-rechoir
+  - node-regenerate
+  - node-regenerate-unicode-properties
+  - node-regenerator-runtime
+  - node-regenerator-transform
+  - node-regexpp
+  - node-regexpu-core
+  - node-regjsgen
+  - node-regjsparser
+  - node-repeat-string
+  - node-require-directory
+  - node-require-from-string
+  - node-requires-port
   - node-resolve
+  - node-resolve-cwd
+  - node-resolve-from
+  - node-restore-cursor
+  - node-resumer
   - node-retry
   - node-rimraf
   - node-run-queue
   - node-safe-buffer
+  - node-schema-utils
+  - node-sellside-emitter
   - node-semver
+  - node-serialize-javascript
   - node-set-blocking
+  - node-set-immediate-shim
+  - node-set-value
+  - node-shebang-command
+  - node-shebang-regex
+  - node-shell-quote
   - node-signal-exit
   - node-slash
   - node-slice-ansi
+  - node-source-list-map
   - node-source-map
   - node-source-map-support
   - node-spdx-correct
@@ -923,30 +1288,66 @@ packages:
   - node-string-decoder
   - node-string-width
   - node-strip-ansi
+  - node-strip-bom
+  - node-strip-json-comments
   - node-supports-color
   - node-tap
   - node-tap-mocha-reporter
   - node-tap-parser
+  - node-tapable
+  - node-tape
   - node-tar
+  - node-terser
   - node-text-table
+  - node-through
   - node-time-stamp
   - node-tmatch
+  - node-to-fast-properties
+  - node-to-regex-range
   - node-tough-cookie
+  - node-tslib
+  - node-type-check
+  - node-typedarray
   - node-typedarray-to-buffer
+  - node-undici
+  - node-unicode-canonical-property-names-ecmascript
+  - node-unicode-match-property-ecmascript
+  - node-unicode-match-property-value-ecmascript
+  - node-unicode-property-aliases-ecmascript
+  - node-union-value
   - node-unique-filename
   - node-universalify
+  - node-unset-value
+  - node-uri-js
+  - node-url-parse
+  - node-util
   - node-util-deprecate
+  - node-uuid
+  - node-v8-compile-cache
+  - node-v8flags
   - node-validate-npm-package-license
   - node-validate-npm-package-name
+  - node-watchpack
   - node-wcwidth.js
+  - node-webassemblyjs
   - node-webidl-conversions
+  - node-webpack-sources
   - node-whatwg-fetch
   - node-which
   - node-wide-align
+  - node-widest-line
+  - node-wordwrap
+  - node-wrap-ansi
   - node-wrappy
+  - node-write
   - node-write-file-atomic
   - node-ws
+  - node-xtend
+  - node-y18n
   - node-yallist
+  - node-yaml
+  - node-yargs
+  - node-yargs-parser
   - nodejs
   - nodejs-doc
   - npm
@@ -961,6 +1362,8 @@ packages:
   - openjdk-21-jre-headless
   - openssh-client
   - openssl
+  - osinfo-db
+  - ovmf
   - packagekit
   - packagekit-tools
   - pandoc
@@ -974,6 +1377,7 @@ packages:
   - perl
   - perl-base
   - perl-modules-5.34
+  - perl-modules-5.38
   - perl-openssl-defaults
   - pinentry-curses
   - pipewire
@@ -981,11 +1385,14 @@ packages:
   - pipewire-media-session
   - pkexec
   - pkg-config
+  - pkgconf
+  - pkgconf-bin
   - plymouth
   - plymouth-theme-ubuntu-text
   - policykit-1
   - polkitd
   - poppler-data
+  - postfix
   - powermgmt-base
   - preview-latex-style
   - procps
@@ -1020,7 +1427,6 @@ packages:
   - python3-distro
   - python3-distro-info
   - python3-distupgrade
-  - python3-distutils
   - python3-dnspython
   - python3-gdbm
   - python3-gi
@@ -1030,6 +1436,7 @@ packages:
   - python3-idna
   - python3-importlib-metadata
   - python3-incremental
+  - python3-jaraco.classes
   - python3-jeepney
   - python3-jinja2
   - python3-jmespath
@@ -1044,18 +1451,22 @@ packages:
   - python3-lazr.uri
   - python3-lib2to3
   - python3-libcloud
+  - python3-libevdev
   - python3-lockfile
   - python3-markdown
   - python3-markupsafe
   - python3-minimal
   - python3-more-itertools
+  - python3-nautilus
   - python3-netaddr
   - python3-netifaces
+  - python3-netplan
   - python3-newt
   - python3-ntlm-auth
   - python3-oauthlib
   - python3-openssl
   - python3-packaging
+  - python3-passlib
   - python3-pip
   - python3-pip-whl
   - python3-pkg-resources
@@ -1067,10 +1478,12 @@ packages:
   - python3-pygments
   - python3-pyparsing
   - python3-pyrsistent
+  - python3-pyudev
   - python3-requests
   - python3-requests-kerberos
   - python3-requests-ntlm
   - python3-requests-toolbelt
+  - python3-resolvelib
   - python3-secretstorage
   - python3-selinux
   - python3-serial
@@ -1092,11 +1505,17 @@ packages:
   - python3-xmltodict
   - python3-yaml
   - python3-zipp
+  - python3-zombie-imp
   - python3-zope.interface
   - python3.10
-  - python3.10-dev
   - python3.10-minimal
-  - python3.10-venv
+  - python3.12
+  - python3.12-dev
+  - python3.12-minimal
+  - qemu-block-extra
+  - qemu-system-common
+  - qemu-system-data
+  - qemu-system-x86
   - qmake6
   - qmake6-bin
   - qt6-base-dev
@@ -1106,8 +1525,10 @@ packages:
   - qtchooser
   - rake
   - readline-common
+  - reiserfsprogs
   - ripgrep
   - rpcsvc-proto
+  - rpm-common
   - rsync
   - rsyslog
   - rtkit
@@ -1115,27 +1536,38 @@ packages:
   - ruby-dev
   - ruby-net-telnet
   - ruby-rubygems
+  - ruby-sdbm
   - ruby-webrick
   - ruby-xmlrpc
   - ruby3.0
-  - ruby3.0-dev
   - ruby3.0-doc
+  - ruby3.2
+  - ruby3.2-dev
   - rubygems-integration
   - run-one
   - screen
+  - scrub
+  - seabios
   - sed
   - sensible-utils
   - session-migration
+  - sgml-base
   - shared-mime-info
   - show-motd
   - snapd
   - software-properties-common
   - sound-theme-freedesktop
   - squashfs-tools
+  - ssl-cert
   - strace
   - sudo
+  - supermin
+  - syslinux
+  - syslinux-common
   - systemd
+  - systemd-dev
   - systemd-hwe-hwdb
+  - systemd-resolved
   - systemd-sysv
   - systemd-timesyncd
   - sysvinit-utils
@@ -1147,6 +1579,7 @@ packages:
   - teckit
   - telnet
   - terraform
+  - terser
   - tex-common
   - tex-gyre
   - texlive-base
@@ -1158,6 +1591,7 @@ packages:
   - texlive-pictures
   - texlive-plain-generic
   - texlive-xetex
+  - thin-provisioning-tools
   - tilix
   - tilix-common
   - time
@@ -1185,13 +1619,13 @@ packages:
   - update-motd
   - usb.ids
   - usbutils
-  - usrmerge
   - util-linux
   - uuid-runtime
   - vim
   - vim-common
   - vim-runtime
   - vim-tiny
+  - webpack
   - wget
   - whiptail
   - wsl-pro-service
@@ -1207,15 +1641,21 @@ packages:
   - xdg-desktop-portal-gtk
   - xdg-user-dirs
   - xdg-utils
+  - xfonts-cyrillic
   - xfonts-encodings
+  - xfonts-scalable
   - xfonts-utils
+  - xfsprogs
   - xkb-data
+  - xml-core
   - xorg-sgml-doctools
   - xtrans-dev
   - xxd
   - xz-utils
+  - zerofree
   - zip
   - zlib1g
   - zlib1g-dev
   - zsh
   - zsh-common
+  - zstd

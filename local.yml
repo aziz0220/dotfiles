@@ -6,8 +6,8 @@
   gather_facts: true
 
   vars:
-    seed_root: "{{ playbook_dir }}/seed"
     user_home: "/home/{{ user_name }}"
+    bootstrap_home_dir: "{{ playbook_dir }}/.bootstrap/home"
 
   vars_files:
     - vars/user-profile.yml
@@ -29,10 +29,10 @@
         - install
         - core
 
-    - name: Show restore source
+    - name: Show bootstrap source
       ansible.builtin.debug:
         msg:
-          - "Recovery seed path: {{ seed_root }}"
+          - "Bootstrap home path: {{ bootstrap_home_dir }}"
           - "Target user: {{ user_name }}"
 
   tasks:

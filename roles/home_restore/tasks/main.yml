@@ -1,14 +1,14 @@
 ---
-- name: Compute user supplemental groups from snapshot
+- name: Compute user supplemental groups
   ansible.builtin.set_fact:
-    _seed_group_names: "{{ seed_groups | map(attribute='name') | reject('equalto', user_name) | list }}"
+    _user_group_names: "{{ user_groups | map(attribute='name') | reject('equalto', user_name) | list }}"
 
 - name: Ensure required groups exist
   ansible.builtin.group:
     name: "{{ item.name }}"
     gid: "{{ item.gid }}"
     state: present
-  loop: "{{ seed_groups }}"
+  loop: "{{ user_groups }}"
 
 - name: Ensure primary user group exists
   ansible.builtin.group:
@@ -21,7 +21,7 @@
     name: "{{ user_name }}"
     uid: "{{ user_uid }}"
     group: "{{ user_name }}"
-    groups: "{{ _seed_group_names }}"
+    groups: "{{ _user_group_names }}"
     append: true
     shell: "{{ user_shell }}"
     create_home: true
@@ -36,40 +36,32 @@
     mode: '0755'
     state: directory
 
-- name: Restore from extracted seed tree if available
+- name: Check bootstrap home source directory
   ansible.builtin.stat:
-    path: "{{ seed_root }}/home"
-  register: seed_home_tree
+    path: "{{ bootstrap_home_dir }}"
+  register: bootstrap_home_tree
 
-- name: Copy extracted seed tree to home
+- name: Fail when bootstrap home source is missing
+  ansible.builtin.fail:
+    msg: >-
+      Missing bootstrap home source at {{ bootstrap_home_dir }}.
+      Decrypt vault/home-secrets.tar.gz.aes256 first (SETUP_SECRETS_PASSWORD=... ./ansible-run)
+      or create {{ bootstrap_home_dir }} before running.
+  when: not bootstrap_home_tree.stat.exists
+
+- name: Copy bootstrap home tree to target home
   ansible.builtin.copy:
-    src: "{{ seed_root }}/home/"
+    src: "{{ bootstrap_home_dir }}/"
     dest: "{{ user_home }}/"
     remote_src: true
     owner: "{{ user_name }}"
     group: "{{ user_name }}"
-  when: seed_home_tree.stat.exists
-
-- name: Restore home archive if tree restore is not used
-  ansible.builtin.stat:
-    path: "{{ seed_root }}/home-config.tar.gz"
-  register: seed_home_archive
-
-- name: Extract home archive
-  ansible.builtin.unarchive:
-    src: "{{ seed_root }}/home-config.tar.gz"
-    dest: "{{ user_home }}"
-    remote_src: true
-    owner: "{{ user_name }}"
-    group: "{{ user_name }}"
-  when:
-    - seed_home_archive.stat.exists
-    - not seed_home_tree.stat.exists
+  when: bootstrap_home_tree.stat.exists
 
 - name: Restore SSH strict permissions
   ansible.builtin.stat:
     path: "{{ user_home }}/.ssh"
-  register: seed_ssh_dir
+  register: bootstrap_ssh_dir
 
 - name: Set SSH directory permissions
   ansible.builtin.file:
@@ -78,15 +70,15 @@
     group: "{{ user_name }}"
     mode: '0700'
     state: directory
-  when: seed_ssh_dir.stat.exists
+  when: bootstrap_ssh_dir.stat.exists
 
 - name: Gather SSH files
   ansible.builtin.find:
     paths: "{{ user_home }}/.ssh"
     file_type: file
     recurse: false
-  register: seed_ssh_files
-  when: seed_ssh_dir.stat.exists
+  register: bootstrap_ssh_files
+  when: bootstrap_ssh_dir.stat.exists
 
 - name: Set SSH file permissions
   ansible.builtin.file:
@@ -94,14 +86,14 @@
     owner: "{{ user_name }}"
     group: "{{ user_name }}"
     mode: "{{ '0644' if item.path is search('\\.pub$') else '0600' }}"
-  loop: "{{ seed_ssh_files.files }}"
+  loop: "{{ bootstrap_ssh_files.files }}"
   when:
-    - seed_ssh_dir.stat.exists
+    - bootstrap_ssh_dir.stat.exists
 
 - name: Check for gnupg directory
   ansible.builtin.stat:
     path: "{{ user_home }}/.gnupg"
-  register: seed_gnupg_dir
+  register: bootstrap_gnupg_dir
 
 - name: Apply gnupg permissions when present
   ansible.builtin.file:
@@ -110,7 +102,7 @@
     group: "{{ user_name }}"
     mode: '0700'
     state: directory
-  when: seed_gnupg_dir.stat.exists
+  when: bootstrap_gnupg_dir.stat.exists
 
 - name: Check repository destination status
   ansible.builtin.stat:
@@ -182,6 +174,55 @@
   when:
     - _failed_repository_clones is defined
     - _failed_repository_clones | length > 0
+
+- name: Probe local origin repositories for fallback clones
+  ansible.builtin.command:
+    cmd: "test -d {{ item.remotes.origin }}/.git"
+  loop: "{{ repositories }}"
+  register: repository_local_origin_probe
+  changed_when: false
+  failed_when: false
+  when:
+    - item.remotes is defined
+    - item.remotes.origin is defined
+    - item.remotes.origin is match('^/')
+
+- name: Clone missing repositories from local origin paths
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      parent_dir="$(dirname "{{ item.item.path }}")"
+      mkdir -p "$parent_dir"
+      if [ ! -d "{{ item.item.path }}/.git" ]; then
+        git clone --depth 1 "{{ item.item.remotes.origin }}" "{{ item.item.path }}"
+      fi
+  loop: "{{ repository_local_origin_probe.results | default([]) }}"
+  register: repository_local_clone_attempts
+  become_user: "{{ user_name }}"
+  failed_when: false
+  when:
+    - item.rc is defined
+    - item.rc == 0
+    - item.item.clone_from | default('') | length == 0
+
+- name: Collect local origin clone failures
+  ansible.builtin.set_fact:
+    _failed_local_repository_clones: >-
+      {{
+        repository_local_clone_attempts.results
+        | selectattr('failed', 'defined')
+        | selectattr('failed')
+        | map(attribute='item.item.name')
+        | list
+      }}
+  when: repository_local_clone_attempts is defined
+
+- name: Fail when local origin clone fallback fails
+  ansible.builtin.fail:
+    msg: "Failed to clone local-origin repositories: {{ _failed_local_repository_clones | join(', ') }}."
+  when:
+    - _failed_local_repository_clones is defined
+    - _failed_local_repository_clones | length > 0
 
 - name: Refresh repository destination status
   ansible.builtin.stat:

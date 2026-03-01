@@ -1,4 +1,4 @@
-seed_groups:
+user_groups:
   - {name: adm, gid: 4}
   - {name: audio, gid: 29}
   - {name: aziz0220, gid: 1000}
