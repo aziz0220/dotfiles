@@ -142,14 +142,17 @@
     _installed_snaps: "{{ _installed_snaps_cmd.stdout_lines | default([]) }}"
   when: _snap_binary.rc == 0
 
-- name: Compute missing snaps from snapshot
+- name: Compute missing snap entries from desired list
   ansible.builtin.set_fact:
-    _snaps_to_install: "{{ snap_list | difference(_installed_snaps | default([])) }}"
+    _snaps_to_install: "{{ (snap_packages | default([])) | rejectattr('name', 'in', _installed_snaps | default([])) | list }}"
   when: _snap_binary.rc == 0
 
-- name: Install missing snaps from snapshot
+- name: Install missing snaps from desired list
   ansible.builtin.command:
-    cmd: "snap install {{ item }}"
+    cmd: >-
+      snap install {{ item.name }}
+      {{ '--classic' if (item.classic | default(false)) else '' }}
+      {{ ('--channel ' ~ item.channel) if (item.channel | default('') | length > 0) else '' }}
   loop: "{{ _snaps_to_install }}"
   register: _snap_install_results
   changed_when: true
@@ -165,7 +168,7 @@
         _snap_install_results.results
         | selectattr('rc', 'defined')
         | rejectattr('rc', 'equalto', 0)
-        | map(attribute='item')
+        | map(attribute='item.name')
         | list
       }}
   when: _snap_install_results is defined
@@ -184,6 +187,22 @@
     state: started
   failed_when: false
   when: _snap_binary.rc == 0
+
+- name: Check aws snap binary path
+  ansible.builtin.stat:
+    path: /snap/bin/aws
+  register: _aws_snap_binary
+  when: _snap_binary.rc == 0
+
+- name: Ensure aws command shim is on standard PATH
+  ansible.builtin.file:
+    src: /snap/bin/aws
+    path: /usr/local/bin/aws
+    state: link
+    force: true
+  when:
+    - _snap_binary.rc == 0
+    - _aws_snap_binary.stat.exists | default(false)
 
 - name: Build local tool directories in home
   ansible.builtin.file:
@@ -243,6 +262,18 @@
     executable: /bin/bash
   become_user: "{{ user_name }}"
   when: node_versions | length > 0
+
+- name: Install global npm CLI tools
+  ansible.builtin.shell: |
+    set -e
+    . "{{ user_home }}/.nvm/nvm.sh"
+    nvm use default >/dev/null
+    npm install -g "{{ item }}"
+  args:
+    executable: /bin/bash
+  loop: "{{ npm_global_packages | default([]) }}"
+  become_user: "{{ user_name }}"
+  when: (npm_global_packages | default([])) | length > 0
 
 - name: Check if jenv checkout already exists
   ansible.builtin.stat:

@@ -1,3 +1,8 @@
-snap_list:
-  - core22
-  - snapd
+snap_packages:
+  - name: aws-cli
+    channel: v2/stable
+    classic: true
+  - name: core22
+    channel: latest/stable
+  - name: snapd
+    channel: latest/stable

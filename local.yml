@@ -17,6 +17,7 @@
     - vars/snap-list.yml
     - vars/groups.yml
     - vars/runtimes.yml
+    - vars/npm-global.yml
     - vars/repos.yml
 
   pre_tasks:

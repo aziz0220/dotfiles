@@ -8,6 +8,7 @@ Goal:
 - restore SSH/GPG/secrets from an encrypted bundle
 - clone working repositories
 - validate parity after restore
+- install key CLI tools (including `aws-cli` and `claude`)
 
 ## Quick Start
 
@@ -61,6 +62,12 @@ export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
 ./scripts/encrypt_home_bundle.sh
 ```
 
+Capture software inventory from current machine into Ansible vars:
+
+```bash
+./scripts/capture_software_inventory.sh
+```
+
 ## Validation
 
 Run post-bootstrap checks:
@@ -99,3 +106,6 @@ Run a subset of tasks:
 - Keep plaintext secrets only in `.bootstrap/home` (ignored by git).
 - Commit only encrypted secrets artifacts in `vault/`.
 - If bootstrap home is missing, `ansible-run` will auto-decrypt when an encrypted bundle is present and `SETUP_SECRETS_PASSWORD` is set.
+- `aws-cli` is installed via snap (`classic`) from `vars/snap-list.yml`.
+- `claude` CLI is installed via npm from `vars/npm-global.yml`.
+- `kiro` is not auto-installed yet because there is no pinned official package source in this repo; add its official install command once you confirm the exact distribution source.
