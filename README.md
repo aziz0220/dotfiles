@@ -62,7 +62,7 @@ export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
 ./scripts/encrypt_home_bundle.sh
 ```
 
-Capture software inventory from current machine into Ansible vars:
+Capture software inventory from current machine into Ansible vars (`apt`, `snap`, `npm -g`, `pipx`, `cargo`, `gem`, `flatpak`):
 
 ```bash
 ./scripts/capture_software_inventory.sh
@@ -96,7 +96,7 @@ Run a subset of tasks:
 
 - `local.yml`: main playbook entrypoint
 - `roles/system_setup`: apt sources, locale/timezone, services
-- `roles/app_stack`: packages, snap, runtimes
+- `roles/app_stack`: packages, snap, npm, pipx, cargo, gem, flatpak, runtimes
 - `roles/home_restore`: user, groups, home restore, repos
 - `vars/*.yml`: declarative machine snapshot inputs
 - `scripts/*`: capture/encrypt/decrypt/validate helpers
@@ -108,4 +108,4 @@ Run a subset of tasks:
 - If bootstrap home is missing, `ansible-run` will auto-decrypt when an encrypted bundle is present and `SETUP_SECRETS_PASSWORD` is set.
 - `aws-cli` is installed via snap (`classic`) from `vars/snap-list.yml`.
 - `claude` CLI is installed via npm from `vars/npm-global.yml`.
-- `kiro` is not auto-installed yet because there is no pinned official package source in this repo; add its official install command once you confirm the exact distribution source.
+- Add one-off installers (like Kiro) to `vars/custom-tools.yml` using `check_cmd` + `install_cmd`, then re-run `./ansible-run`.

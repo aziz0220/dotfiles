@@ -21,6 +21,13 @@ required_files=(
   "$PLAYBOOK_DIR/vars/installed-packages.yml"
   "$PLAYBOOK_DIR/vars/repos.yml"
   "$PLAYBOOK_DIR/vars/groups.yml"
+  "$PLAYBOOK_DIR/vars/snap-list.yml"
+  "$PLAYBOOK_DIR/vars/npm-global.yml"
+  "$PLAYBOOK_DIR/vars/pipx.yml"
+  "$PLAYBOOK_DIR/vars/cargo.yml"
+  "$PLAYBOOK_DIR/vars/gem.yml"
+  "$PLAYBOOK_DIR/vars/flatpak.yml"
+  "$PLAYBOOK_DIR/vars/custom-tools.yml"
 )
 
 for path in "${required_files[@]}"; do

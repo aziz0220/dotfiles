@@ -144,7 +144,7 @@
 
 - name: Compute missing snap entries from desired list
   ansible.builtin.set_fact:
-    _snaps_to_install: "{{ (snap_packages | default([])) | rejectattr('name', 'in', _installed_snaps | default([])) | list }}"
+    _snaps_to_install: "{{ (snap_packages | default([], true)) | rejectattr('name', 'in', _installed_snaps | default([], true)) | list }}"
   when: _snap_binary.rc == 0
 
 - name: Install missing snaps from desired list
@@ -271,9 +271,296 @@
     npm install -g "{{ item }}"
   args:
     executable: /bin/bash
-  loop: "{{ npm_global_packages | default([]) }}"
+  loop: "{{ npm_global_packages | default([], true) }}"
   become_user: "{{ user_name }}"
-  when: (npm_global_packages | default([])) | length > 0
+  when: (npm_global_packages | default([], true)) | length > 0
+
+- name: Check whether pipx is available
+  ansible.builtin.command:
+    cmd: which pipx
+  register: _pipx_binary
+  changed_when: false
+  failed_when: false
+
+- name: Read currently installed pipx packages
+  ansible.builtin.shell: |
+    set -euo pipefail
+    pipx list --json 2>/dev/null | python3 -c 'import json,sys; data=json.load(sys.stdin); print("\n".join(sorted(data.get("venvs", {}).keys())))'
+  args:
+    executable: /bin/bash
+  register: _installed_pipx_cmd
+  changed_when: false
+  failed_when: false
+  when: _pipx_binary.rc == 0
+
+- name: Build installed pipx package set
+  ansible.builtin.set_fact:
+    _installed_pipx_packages: "{{ _installed_pipx_cmd.stdout_lines | default([]) }}"
+  when: _pipx_binary.rc == 0
+
+- name: Compute missing pipx packages
+  ansible.builtin.set_fact:
+    _pipx_to_install: "{{ (pipx_packages | default([], true)) | difference(_installed_pipx_packages | default([], true)) }}"
+  when: _pipx_binary.rc == 0
+
+- name: Install missing pipx packages
+  ansible.builtin.command:
+    cmd: "pipx install {{ item }}"
+  loop: "{{ _pipx_to_install }}"
+  register: _pipx_install_results
+  changed_when: true
+  failed_when: false
+  become_user: "{{ user_name }}"
+  when:
+    - _pipx_binary.rc == 0
+    - _pipx_to_install | length > 0
+
+- name: Collect failed pipx installs
+  ansible.builtin.set_fact:
+    _failed_pipx_installs: >-
+      {{
+        _pipx_install_results.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
+  when:
+    - _pipx_install_results is defined
+    - _pipx_install_results.results is defined
+
+- name: Fail when any required pipx package failed to install
+  ansible.builtin.fail:
+    msg: "Failed to install required pipx packages: {{ _failed_pipx_installs | join(', ') }}"
+  when:
+    - _failed_pipx_installs is defined
+    - _failed_pipx_installs | length > 0
+
+- name: Check whether cargo is available
+  ansible.builtin.command:
+    cmd: which cargo
+  register: _cargo_binary
+  changed_when: false
+  failed_when: false
+
+- name: Read currently installed cargo packages
+  ansible.builtin.shell: |
+    set -euo pipefail
+    cargo install --list 2>/dev/null | awk -F' v' '/^[A-Za-z0-9._-]+ v[0-9]/ {print $1}' | sort -u
+  args:
+    executable: /bin/bash
+  register: _installed_cargo_cmd
+  changed_when: false
+  failed_when: false
+  become_user: "{{ user_name }}"
+  when: _cargo_binary.rc == 0
+
+- name: Build installed cargo package set
+  ansible.builtin.set_fact:
+    _installed_cargo_packages: "{{ _installed_cargo_cmd.stdout_lines | default([]) }}"
+  when: _cargo_binary.rc == 0
+
+- name: Compute missing cargo packages
+  ansible.builtin.set_fact:
+    _cargo_to_install: "{{ (cargo_packages | default([], true)) | difference(_installed_cargo_packages | default([], true)) }}"
+  when: _cargo_binary.rc == 0
+
+- name: Install missing cargo packages
+  ansible.builtin.command:
+    cmd: "cargo install {{ item }}"
+  loop: "{{ _cargo_to_install }}"
+  register: _cargo_install_results
+  changed_when: true
+  failed_when: false
+  become_user: "{{ user_name }}"
+  when:
+    - _cargo_binary.rc == 0
+    - _cargo_to_install | length > 0
+
+- name: Collect failed cargo installs
+  ansible.builtin.set_fact:
+    _failed_cargo_installs: >-
+      {{
+        _cargo_install_results.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
+  when:
+    - _cargo_install_results is defined
+    - _cargo_install_results.results is defined
+
+- name: Fail when any required cargo package failed to install
+  ansible.builtin.fail:
+    msg: "Failed to install required cargo packages: {{ _failed_cargo_installs | join(', ') }}"
+  when:
+    - _failed_cargo_installs is defined
+    - _failed_cargo_installs | length > 0
+
+- name: Check whether gem is available
+  ansible.builtin.command:
+    cmd: which gem
+  register: _gem_binary
+  changed_when: false
+  failed_when: false
+
+- name: Read currently installed gem packages
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ruby -e 'require "rubygems"; u=Gem.user_dir; puts Gem::Specification.select { |s| s.base_dir.start_with?(u) }.map(&:name).uniq.sort'
+  args:
+    executable: /bin/bash
+  register: _installed_gem_cmd
+  changed_when: false
+  failed_when: false
+  become_user: "{{ user_name }}"
+  when: _gem_binary.rc == 0
+
+- name: Build installed gem package set
+  ansible.builtin.set_fact:
+    _installed_gem_packages: "{{ _installed_gem_cmd.stdout_lines | default([]) }}"
+  when: _gem_binary.rc == 0
+
+- name: Compute missing gem packages
+  ansible.builtin.set_fact:
+    _gem_to_install: "{{ (gem_packages | default([], true)) | difference(_installed_gem_packages | default([], true)) }}"
+  when: _gem_binary.rc == 0
+
+- name: Install missing gem packages
+  ansible.builtin.command:
+    cmd: "gem install --user-install --no-document {{ item }}"
+  loop: "{{ _gem_to_install }}"
+  register: _gem_install_results
+  changed_when: true
+  failed_when: false
+  become_user: "{{ user_name }}"
+  when:
+    - _gem_binary.rc == 0
+    - _gem_to_install | length > 0
+
+- name: Collect failed gem installs
+  ansible.builtin.set_fact:
+    _failed_gem_installs: >-
+      {{
+        _gem_install_results.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
+  when:
+    - _gem_install_results is defined
+    - _gem_install_results.results is defined
+
+- name: Fail when any required gem package failed to install
+  ansible.builtin.fail:
+    msg: "Failed to install required gem packages: {{ _failed_gem_installs | join(', ') }}"
+  when:
+    - _failed_gem_installs is defined
+    - _failed_gem_installs | length > 0
+
+- name: Check whether flatpak is available
+  ansible.builtin.command:
+    cmd: which flatpak
+  register: _flatpak_binary
+  changed_when: false
+  failed_when: false
+
+- name: Read currently installed flatpak app ids
+  ansible.builtin.shell: |
+    set -euo pipefail
+    flatpak list --app --columns=application 2>/dev/null | sed '/^$/d' | sort -u
+  args:
+    executable: /bin/bash
+  register: _installed_flatpak_cmd
+  changed_when: false
+  failed_when: false
+  when: _flatpak_binary.rc == 0
+
+- name: Build installed flatpak app set
+  ansible.builtin.set_fact:
+    _installed_flatpak_apps: "{{ _installed_flatpak_cmd.stdout_lines | default([]) }}"
+  when: _flatpak_binary.rc == 0
+
+- name: Compute missing flatpak apps
+  ansible.builtin.set_fact:
+    _flatpak_to_install: "{{ (flatpak_apps | default([], true)) | rejectattr('id', 'in', _installed_flatpak_apps | default([], true)) | list }}"
+  when: _flatpak_binary.rc == 0
+
+- name: Install missing flatpak apps
+  ansible.builtin.command:
+    cmd: "flatpak install -y {{ item.remote | default('flathub') }} {{ item.id }}"
+  loop: "{{ _flatpak_to_install }}"
+  register: _flatpak_install_results
+  changed_when: true
+  failed_when: false
+  when:
+    - _flatpak_binary.rc == 0
+    - _flatpak_to_install | length > 0
+
+- name: Collect failed flatpak installs
+  ansible.builtin.set_fact:
+    _failed_flatpak_installs: >-
+      {{
+        _flatpak_install_results.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item.id')
+        | list
+      }}
+  when:
+    - _flatpak_install_results is defined
+    - _flatpak_install_results.results is defined
+
+- name: Fail when any required flatpak app failed to install
+  ansible.builtin.fail:
+    msg: "Failed to install required flatpak apps: {{ _failed_flatpak_installs | join(', ') }}"
+  when:
+    - _failed_flatpak_installs is defined
+    - _failed_flatpak_installs | length > 0
+
+- name: Probe custom tools presence
+  ansible.builtin.shell: "{{ item.check_cmd }}"
+  args:
+    executable: /bin/bash
+  loop: "{{ custom_tools | default([], true) }}"
+  register: _custom_tool_probes
+  changed_when: false
+  failed_when: false
+
+- name: Install missing custom tools
+  ansible.builtin.shell: "{{ item.item.install_cmd }}"
+  args:
+    executable: /bin/bash
+  loop: "{{ _custom_tool_probes.results | default([]) }}"
+  register: _custom_tool_installs
+  changed_when: true
+  failed_when: false
+  when:
+    - item.rc is defined
+    - item.rc != 0
+
+- name: Collect failed custom tool installs
+  ansible.builtin.set_fact:
+    _failed_custom_tool_installs: >-
+      {{
+        _custom_tool_installs.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item.item.name')
+        | list
+      }}
+  when:
+    - _custom_tool_installs is defined
+    - _custom_tool_installs.results is defined
+
+- name: Fail when any required custom tool install failed
+  ansible.builtin.fail:
+    msg: "Failed to install required custom tools: {{ _failed_custom_tool_installs | join(', ') }}"
+  when:
+    - _failed_custom_tool_installs is defined
+    - _failed_custom_tool_installs | length > 0
 
 - name: Check if jenv checkout already exists
   ansible.builtin.stat:

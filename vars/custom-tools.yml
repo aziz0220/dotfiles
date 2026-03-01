@@ -1,0 +1,4 @@
+custom_tools:
+  # - name: "kiro"
+  #   check_cmd: "command -v kiro"
+  #   install_cmd: "echo 'replace with official Kiro install command'"
