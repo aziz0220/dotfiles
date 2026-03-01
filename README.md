@@ -1,6 +1,6 @@
 # Ubuntu Setup (Ansible Bootstrap)
 
-This repo is a clean bootstrap repo for rebuilding your workstation on a new machine.
+This repo is the source-of-truth bootstrap repo for rebuilding your workstation on a new machine.
 
 Goal:
 - install system packages
@@ -52,7 +52,7 @@ export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
 Capture current machine config into `.bootstrap/home` (curated allowlist):
 
 ```bash
-./scripts/capture_bootstrap_home.sh
+ALLOW_REPO_OVERWRITE=1 ./scripts/capture_bootstrap_home.sh
 ```
 
 Then encrypt it:
@@ -65,8 +65,10 @@ export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
 Capture software inventory from current machine into Ansible vars (`apt`, `snap`, `npm -g`, `pipx`, `cargo`, `gem`, `flatpak`):
 
 ```bash
-./scripts/capture_software_inventory.sh
+ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 ```
+
+These capture commands are intentionally gated and should only be used for explicit one-time migrations.
 
 ## Validation
 
@@ -103,6 +105,7 @@ Run a subset of tasks:
 
 ## Notes
 
+- Repo-first model: `vars/*.yml` + `.bootstrap/home` are canonical. Target machines must converge to repo state.
 - Keep plaintext secrets only in `.bootstrap/home` (ignored by git).
 - Commit only encrypted secrets artifacts in `vault/`.
 - If bootstrap home is missing, `ansible-run` will auto-decrypt when an encrypted bundle is present and `SETUP_SECRETS_PASSWORD` is set.

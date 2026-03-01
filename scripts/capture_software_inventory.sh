@@ -3,6 +3,20 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+if [ "${ALLOW_REPO_OVERWRITE:-0}" != "1" ]; then
+  cat >&2 <<'EOF'
+Refusing to overwrite repo inventory from host data.
+This repository is the source of truth for bootstrap state.
+
+Use this for drift checks instead:
+  ./scripts/validate_setup.sh
+
+If you intentionally want a one-time migration from this host, run:
+  ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
+EOF
+  exit 1
+fi
+
 capture_apt() {
   {
     echo "packages:"

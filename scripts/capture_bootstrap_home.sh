@@ -6,6 +6,17 @@ SOURCE_HOME="${1:-$HOME}"
 OUTPUT_HOME_DIR="${2:-$REPO_DIR/.bootstrap/home}"
 INCLUDE_PRIVATE="${INCLUDE_PRIVATE:-true}"
 
+if [ "${ALLOW_REPO_OVERWRITE:-0}" != "1" ]; then
+  cat >&2 <<'EOF'
+Refusing to overwrite bootstrap home from host data.
+This repository is the source of truth for bootstrap state.
+
+If you intentionally want a one-time migration from this host, run:
+  ALLOW_REPO_OVERWRITE=1 ./scripts/capture_bootstrap_home.sh
+EOF
+  exit 1
+fi
+
 if [ ! -d "$SOURCE_HOME" ]; then
   echo "ERROR: source home directory not found: $SOURCE_HOME" >&2
   exit 1
