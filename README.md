@@ -108,4 +108,4 @@ Run a subset of tasks:
 - If bootstrap home is missing, `ansible-run` will auto-decrypt when an encrypted bundle is present and `SETUP_SECRETS_PASSWORD` is set.
 - `aws-cli` is installed via snap (`classic`) from `vars/snap-list.yml`.
 - `claude` CLI is installed via npm from `vars/npm-global.yml`.
-- Add one-off installers (like Kiro) to `vars/custom-tools.yml` using `check_cmd` + `install_cmd`, then re-run `./ansible-run`.
+- Add one-off installers to `vars/custom-tools.yml` using `check_cmd` + `install_cmd`, then re-run `./ansible-run`.
