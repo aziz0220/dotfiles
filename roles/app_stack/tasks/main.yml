@@ -1,0 +1,122 @@
+---
+- name: Ensure package manager cache is fresh
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install system package set from snapshot
+  ansible.builtin.apt:
+    name: "{{ packages }}"
+    state: present
+    install_recommends: false
+  register: apt_install
+  ignore_errors: true
+
+- name: Install known snaps from snapshot
+  ansible.builtin.shell: "snap install {{ item }}"
+  args:
+    executable: /bin/bash
+  loop: "{{ snap_list }}"
+  register: snap_install
+  failed_when: false
+
+- name: Ensure snapd and snap services are enabled
+  ansible.builtin.systemd:
+    name: snapd
+    enabled: true
+    state: started
+  ignore_errors: true
+
+- name: Build local tool dirs in home (safe only)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: '0755'
+  loop:
+    - "{{ user_home }}/.npm-global"
+    - "{{ user_home }}/.local"
+    - "{{ user_home }}/go/bin"
+  ignore_errors: true
+  become_user: "{{ user_name }}"
+
+- name: Restore nvm checkout if not present
+  ansible.builtin.git:
+    repo: https://github.com/nvm-sh/nvm.git
+    dest: "{{ user_home }}/.nvm"
+    depth: 1
+    update: false
+  become_user: "{{ user_name }}"
+  ignore_errors: true
+
+- name: Install Node runtimes with nvm
+  ansible.builtin.shell: |
+    set -e
+    . "{{ user_home }}/.nvm/nvm.sh"
+    nvm install "{{ item }}"
+    nvm alias default "{{ node_versions[0] }}"
+  args:
+    executable: /bin/bash
+  loop: "{{ node_versions }}"
+  become_user: "{{ user_name }}"
+  failed_when: false
+
+- name: Restore jenv checkout if not present
+  ansible.builtin.git:
+    repo: https://github.com/jenv/jenv.git
+    dest: "{{ user_home }}/.jenv"
+    depth: 1
+    update: false
+  become_user: "{{ user_name }}"
+  ignore_errors: true
+
+- name: Install SDKMAN
+  ansible.builtin.shell: |
+    curl -s "https://get.sdkman.io" | bash
+  args:
+    executable: /bin/bash
+    creates: "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+  become_user: "{{ user_name }}"
+  failed_when: false
+
+- name: Install SDKMAN Java versions
+  ansible.builtin.shell: |
+    set -e
+    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+    sdk install java "{{ item }}"
+    if [ "{{ item }}" = "{{ sdkman_default_java }}" ]; then
+      sdk default java "{{ item }}"
+    fi
+  args:
+    executable: /bin/bash
+  loop: "{{ sdkman_java_versions }}"
+  become_user: "{{ user_name }}"
+  failed_when: false
+
+- name: Install SDKMAN Maven versions
+  ansible.builtin.shell: |
+    set -e
+    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+    sdk install maven "{{ item }}"
+    if [ "{{ item }}" = "{{ sdkman_default_maven }}" ]; then
+      sdk default maven "{{ item }}"
+    fi
+  args:
+    executable: /bin/bash
+  loop: "{{ sdkman_maven_versions }}"
+  become_user: "{{ user_name }}"
+  failed_when: false
+
+- name: Install SDKMAN Gradle versions
+  ansible.builtin.shell: |
+    set -e
+    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+    sdk install gradle "{{ item }}"
+    if [ "{{ item }}" = "{{ sdkman_default_gradle }}" ]; then
+      sdk default gradle "{{ item }}"
+    fi
+  args:
+    executable: /bin/bash
+  loop: "{{ sdkman_gradle_versions }}"
+  become_user: "{{ user_name }}"
+  failed_when: false

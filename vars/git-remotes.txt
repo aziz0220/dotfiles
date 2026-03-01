@@ -1,0 +1,32 @@
+repo: /mnt/recovery/home/aziz0220/cli-agent-orchestrator
+[remote "origin"]: https://github.com/aziz0220/cli-agent-orchestrator.git
+[remote "upstream"]: https://github.com/awslabs/cli-agent-orchestrator.git
+---
+repo: /mnt/recovery/home/aziz0220/.nvm
+[remote "origin"]: https://github.com/nvm-sh/nvm.git
+---
+repo: /mnt/recovery/home/aziz0220/pipmedia
+[remote "origin"]: git@github.com:aziz0220/pipmedia.git
+---
+repo: /mnt/recovery/home/aziz0220/RefactorBench
+[remote "upstream"]: https://github.com/microsoft/RefactorBench.git
+[remote "origin"]: git@github.com:aziz0220/RefactorBench.git
+---
+repo: /mnt/recovery/home/aziz0220/.oh-my-zsh
+[remote "origin"]: https://github.com/ohmyzsh/ohmyzsh.git
+---
+repo: /mnt/recovery/home/aziz0220/Tipico---Multi-Agent-for-Code-Refactoring
+[remote "origin"]: git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git
+---
+repo: /mnt/recovery/home/aziz0220/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel
+[remote "origin"]: /home/aziz0220/SWE-Refactor/SWE-Refactor
+---
+repo: /mnt/recovery/home/aziz0220/SWE-Refactor/SWE-Refactor
+[remote "origin"]: git@github.com:aziz0220/SWE-Refactor.git
+---
+repo: /mnt/recovery/home/aziz0220/.jenv
+[remote "origin"]: https://github.com/jenv/jenv.git
+---
+repo: /mnt/recovery/home/aziz0220/.config/nvim
+[remote "origin"]: https://github.com/nvim-lua/kickstart.nvim.git
+---

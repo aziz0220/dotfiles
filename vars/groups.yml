@@ -1,0 +1,3 @@
+seed_groups:
+  - {name: docker, gid: 1001}
+  - {name: sudo, gid: 27}

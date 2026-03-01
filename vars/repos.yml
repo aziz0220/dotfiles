@@ -1,0 +1,63 @@
+repositories:
+  - name: "cli-agent-orchestrator"
+    path: "{{ user_home }}/cli-agent-orchestrator"
+    clone_from: "https://github.com/aziz0220/cli-agent-orchestrator.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/aziz0220/cli-agent-orchestrator.git"
+      upstream: "https://github.com/awslabs/cli-agent-orchestrator.git"
+  - name: ".nvm"
+    path: "{{ user_home }}/.nvm"
+    clone_from: "https://github.com/nvm-sh/nvm.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvm-sh/nvm.git"
+  - name: "pipmedia"
+    path: "{{ user_home }}/pipmedia"
+    clone_from: "git@github.com:aziz0220/pipmedia.git"
+    clone_if_missing: true
+    remotes:
+      origin: "git@github.com:aziz0220/pipmedia.git"
+  - name: "RefactorBench"
+    path: "{{ user_home }}/RefactorBench"
+    clone_from: "https://github.com/aziz0220/RefactorBench.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/aziz0220/RefactorBench.git"
+      upstream: "https://github.com/microsoft/RefactorBench.git"
+  - name: ".oh-my-zsh"
+    path: "{{ user_home }}/.oh-my-zsh"
+    clone_from: "https://github.com/ohmyzsh/ohmyzsh.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/ohmyzsh/ohmyzsh.git"
+  - name: "Tipico---Multi-Agent-for-Code-Refactoring"
+    path: "{{ user_home }}/Tipico---Multi-Agent-for-Code-Refactoring"
+    clone_from: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
+    clone_if_missing: true
+    remotes:
+      origin: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
+  - name: "SWE-Refactor-copilot-lsp-parallel"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor"
+  - name: "SWE-Refactor"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor"
+    clone_from: "git@github.com:aziz0220/SWE-Refactor.git"
+    clone_if_missing: true
+    remotes:
+      origin: "git@github.com:aziz0220/SWE-Refactor.git"
+  - name: ".jenv"
+    path: "{{ user_home }}/.jenv"
+    clone_from: "https://github.com/jenv/jenv.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/jenv/jenv.git"
+  - name: "nvim"
+    path: "{{ user_home }}/.config/nvim"
+    clone_from: "https://github.com/nvim-lua/kickstart.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-lua/kickstart.nvim.git"

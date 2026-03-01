@@ -1,0 +1,171 @@
+---
+- name: Compute user supplemental groups from snapshot
+  ansible.builtin.set_fact:
+    _seed_group_names: "{{ seed_groups | map(attribute='name') | reject('equalto', user_name) | list }}"
+
+- name: Ensure required groups exist
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    gid: "{{ item.gid }}"
+    state: present
+  loop: "{{ seed_groups }}"
+
+- name: Ensure primary user group exists
+  ansible.builtin.group:
+    name: "{{ user_name }}"
+    gid: "{{ user_gid }}"
+    state: present
+
+- name: Ensure primary user exists
+  ansible.builtin.user:
+    name: "{{ user_name }}"
+    uid: "{{ user_uid }}"
+    group: "{{ user_name }}"
+    groups: "{{ _seed_group_names }}"
+    append: true
+    shell: "{{ user_shell }}"
+    create_home: true
+    home: "{{ user_home }}"
+    state: present
+
+- name: Ensure home directory ownership
+  ansible.builtin.file:
+    path: "{{ user_home }}"
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: '0755'
+    state: directory
+
+- name: Restore from extracted seed tree if available
+  ansible.builtin.stat:
+    path: "{{ seed_root }}/home"
+  register: seed_home_tree
+
+- name: Copy extracted seed tree to home
+  ansible.builtin.copy:
+    src: "{{ seed_root }}/home/"
+    dest: "{{ user_home }}/"
+    remote_src: true
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+  when: seed_home_tree.stat.exists
+
+- name: Restore home archive if tree restore is not used
+  ansible.builtin.stat:
+    path: "{{ seed_root }}/home-config.tar.gz"
+  register: seed_home_archive
+
+- name: Extract home archive
+  ansible.builtin.unarchive:
+    src: "{{ seed_root }}/home-config.tar.gz"
+    dest: "{{ user_home }}"
+    remote_src: true
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+  when:
+    - seed_home_archive.stat.exists
+    - not seed_home_tree.stat.exists
+
+- name: Restore SSH strict permissions
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.ssh"
+  register: seed_ssh_dir
+
+- name: Set SSH directory permissions
+  ansible.builtin.file:
+    path: "{{ user_home }}/.ssh"
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: '0700'
+    state: directory
+  when: seed_ssh_dir.stat.exists
+
+- name: Gather SSH files
+  ansible.builtin.find:
+    paths: "{{ user_home }}/.ssh"
+    file_type: file
+    recurse: false
+  register: seed_ssh_files
+  when: seed_ssh_dir.stat.exists
+
+- name: Set SSH file permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: "{{ '0644' if item.path is search('\\.pub$') else '0600' }}"
+  loop: "{{ seed_ssh_files.files }}"
+  when:
+    - seed_ssh_dir.stat.exists
+
+- name: Check for gnupg directory
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.gnupg"
+  register: seed_gnupg_dir
+
+- name: Apply gnupg permissions when present
+  ansible.builtin.file:
+    path: "{{ user_home }}/.gnupg"
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: '0700'
+    state: directory
+  when: seed_gnupg_dir.stat.exists
+
+- name: Check repository destination status
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+  loop: "{{ repositories }}"
+  register: repository_paths
+
+- name: Clone missing repositories from remote URLs
+  ansible.builtin.git:
+    repo: "{{ item.item.clone_from }}"
+    dest: "{{ item.item.path }}"
+    update: false
+    depth: 1
+  loop: "{{ repository_paths.results }}"
+  become_user: "{{ user_name }}"
+  failed_when: false
+  when:
+    - item.item.clone_if_missing | default(true)
+    - item.item.clone_from | default('') | length > 0
+    - not item.stat.exists
+
+- name: Ensure origin remote for restored repositories
+  ansible.builtin.shell:
+    cmd: |
+      if [ -d "{{ item.item.path }}/.git" ]; then
+        cd "{{ item.item.path }}"
+        if git remote get-url origin >/dev/null 2>&1; then
+          git remote set-url origin "{{ item.item.remotes.origin }}"
+        else
+          git remote add origin "{{ item.item.remotes.origin }}"
+        fi
+      fi
+  loop: "{{ repository_paths.results }}"
+  become_user: "{{ user_name }}"
+  failed_when: false
+  when:
+    - item.stat.exists
+    - item.item.remotes is defined
+    - item.item.remotes.origin is defined
+
+- name: Set upstream remote where known
+  ansible.builtin.shell:
+    cmd: |
+      if [ -d "{{ item.item.path }}/.git" ]; then
+        cd "{{ item.item.path }}"
+        if git remote get-url upstream >/dev/null 2>&1; then
+          git remote set-url upstream "{{ item.item.remotes.upstream }}"
+        else
+          git remote add upstream "{{ item.item.remotes.upstream }}"
+        fi
+      fi
+  loop: "{{ repository_paths.results }}"
+  become_user: "{{ user_name }}"
+  failed_when: false
+  when:
+    - item.stat.exists
+    - item.item.remotes is defined
+    - item.item.remotes.upstream is defined

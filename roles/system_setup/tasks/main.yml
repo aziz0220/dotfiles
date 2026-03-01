@@ -1,0 +1,86 @@
+---
+- name: Ensure apt source lists directory exists
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d
+    state: directory
+    mode: '0755'
+
+- name: Restore /etc/apt/sources.list
+  ansible.builtin.copy:
+    src: etc_apt_sources.list
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Restore HashiCorp repo list
+  ansible.builtin.copy:
+    src: etc_apt_sources_hashicorp.list
+    dest: /etc/apt/sources.list.d/hashicorp.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Restore HashiCorp apt keyring
+  ansible.builtin.copy:
+    src: usr_share_keyrings/hashicorp-archive-keyring.gpg
+    dest: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Restore WSL configuration
+  ansible.builtin.copy:
+    src: etc_wsl.conf
+    dest: /etc/wsl.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure common system directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - /etc/apt/keyrings
+
+- name: Write default locale
+  ansible.builtin.copy:
+    dest: /etc/default/locale
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      LANG={{ locale_name }}
+
+- name: Write /etc/timezone
+  ansible.builtin.copy:
+    dest: /etc/timezone
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      {{ timezone }}
+
+- name: Sync timezone file and locale generation database
+  ansible.builtin.file:
+    src: "/usr/share/zoneinfo/{{ timezone }}"
+    path: /etc/localtime
+    state: link
+    force: true
+  notify: refresh-timezone
+
+- name: Run apt update after sources are restored
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Ensure required systemctl services are enabled
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: "{{ systemd_services }}"
+  ignore_errors: true
