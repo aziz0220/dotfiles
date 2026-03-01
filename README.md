@@ -75,6 +75,13 @@ Dry-run (safe preview) before running live:
 DRY_RUN=1 ./scripts/full_restore.sh --seed-dir /home/aziz0220/ubuntu22-rebuild/seed --user aziz0220 --recovery-root /mnt/recovery
 ```
 
+When the repo is already present and you just want to run the seed/apply step on a fresh copy:
+
+```bash
+cd /home/aziz0220/ubuntu22-rebuild
+./scripts/full_restore.sh --skip-update --seed-dir /home/aziz0220/ubuntu22-rebuild/seed --user aziz0220
+```
+
 The full command performs these exact steps on `/home/aziz0220`:
 
 - clone/fetch `git@github.com:aziz0220/ubuntu-setup.git` into `/home/aziz0220/ubuntu22-rebuild`
