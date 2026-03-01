@@ -1,6 +1,6 @@
 ---
 - name: Apply runtime and package role
-  ansible.builtin.include_role:
+  ansible.builtin.import_role:
     name: app_stack
   tags:
     - software

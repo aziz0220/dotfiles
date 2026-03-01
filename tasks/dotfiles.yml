@@ -1,6 +1,6 @@
 ---
 - name: Apply dotfiles and repo restore role
-  ansible.builtin.include_role:
+  ansible.builtin.import_role:
     name: home_restore
   tags:
     - home

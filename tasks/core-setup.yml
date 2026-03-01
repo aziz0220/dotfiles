@@ -1,6 +1,6 @@
 ---
 - name: Apply core system role
-  ansible.builtin.include_role:
+  ansible.builtin.import_role:
     name: system_setup
   tags:
     - system

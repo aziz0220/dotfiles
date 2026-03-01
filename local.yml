@@ -38,12 +38,31 @@
   tasks:
     - name: Include ssh setup tasks
       ansible.builtin.include_tasks: tasks/ssh.yml
+      tags:
+        - ssh
+        - base
+        - install
 
     - name: Include core setup tasks
       ansible.builtin.include_tasks: tasks/core-setup.yml
+      tags:
+        - core
+        - base
+        - install
 
     - name: Include dotfiles/home setup tasks
       ansible.builtin.include_tasks: tasks/dotfiles.yml
+      tags:
+        - dotfiles
+        - home
+        - base
+        - install
 
     - name: Include node/runtime setup tasks
       ansible.builtin.include_tasks: tasks/node-setup.yml
+      tags:
+        - node
+        - software
+        - core
+        - base
+        - install

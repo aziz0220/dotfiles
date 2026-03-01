@@ -118,6 +118,12 @@
   loop: "{{ repositories }}"
   register: repository_paths
 
+- name: Check repository git metadata status
+  ansible.builtin.stat:
+    path: "{{ item.path }}/.git"
+  loop: "{{ repositories }}"
+  register: repository_git_metadata
+
 - name: Ensure ownership for existing repositories
   ansible.builtin.file:
     path: "{{ item.item.path }}"
@@ -127,21 +133,36 @@
   loop: "{{ repository_paths.results }}"
   when: item.stat.exists
 
+- name: Remove non-git directories for cloneable repositories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ repositories }}"
+  loop_control:
+    index_var: repo_idx
+  when:
+    - item.clone_if_missing | default(true)
+    - item.clone_from | default('') | length > 0
+    - repository_paths.results[repo_idx].stat.exists | default(false)
+    - not (repository_git_metadata.results[repo_idx].stat.exists | default(false))
+
 - name: Clone missing repositories from remote URLs
   ansible.builtin.git:
-    repo: "{{ item.item.clone_from }}"
-    dest: "{{ item.item.path }}"
+    repo: "{{ item.clone_from }}"
+    dest: "{{ item.path }}"
     update: false
     depth: 1
     recursive: false
-  loop: "{{ repository_paths.results }}"
+  loop: "{{ repositories }}"
+  loop_control:
+    index_var: repo_idx
   register: repository_clone_attempts
   become_user: "{{ user_name }}"
   failed_when: false
   when:
-    - item.item.clone_if_missing | default(true)
-    - item.item.clone_from | default('') | length > 0
-    - not item.stat.exists
+    - item.clone_if_missing | default(true)
+    - item.clone_from | default('') | length > 0
+    - not (repository_git_metadata.results[repo_idx].stat.exists | default(false))
 
 - name: Collect repository clone failures
   ansible.builtin.set_fact:
@@ -150,7 +171,7 @@
         repository_clone_attempts.results
         | selectattr('failed', 'defined')
         | selectattr('failed')
-        | map(attribute='item.item.name')
+        | map(attribute='item.name')
         | list
       }}
   when: repository_clone_attempts is defined

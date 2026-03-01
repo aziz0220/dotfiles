@@ -37,20 +37,34 @@
   ansible.builtin.set_fact:
     _missing_packages: "{{ (packages | unique) | difference(_available_packages) }}"
 
+- name: Exclude self-managed Ansible packages from package loop
+  ansible.builtin.set_fact:
+    _package_loop_exclusions:
+      - ansible
+
+- name: Build safe package install list
+  ansible.builtin.set_fact:
+    _available_packages_safe: "{{ _available_packages | difference(_package_loop_exclusions) }}"
+
 - name: Show snapshot packages unavailable on this target release
   ansible.builtin.debug:
     msg: "Skipping unavailable packages: {{ _missing_packages | join(', ') }}"
   when: _missing_packages | length > 0
+
+- name: Show package loop exclusions
+  ansible.builtin.debug:
+    msg: "Skipping self-managed packages during restore: {{ _package_loop_exclusions | join(', ') }}"
+  when: _available_packages | difference(_available_packages_safe) | length > 0
 
 - name: Install available snapshot packages one-by-one (conflict tolerant)
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present
     install_recommends: false
-  loop: "{{ _available_packages }}"
+  loop: "{{ _available_packages_safe }}"
   register: _package_install_results
   failed_when: false
-  when: _available_packages | length > 0
+  when: _available_packages_safe | length > 0
 
 - name: Collect packages that failed to install
   ansible.builtin.set_fact:
