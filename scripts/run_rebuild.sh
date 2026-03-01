@@ -17,6 +17,14 @@ if [ -x "$PLAYBOOK_DIR/collectors/sync_seed_to_vars.sh" ]; then
   "$PLAYBOOK_DIR/collectors/sync_seed_to_vars.sh" "$SEED_DIR"
 fi
 
+if [ ! -f "$SEED_DIR/home-config.tar.gz" ] && [ -f "$SEED_DIR/home-config.tar.gz.aes256" ]; then
+  if [ -n "${RECOVERY_SEED_PASSWORD-}" ]; then
+    "$PLAYBOOK_DIR/collectors/decrypt_seed.sh" "$SEED_DIR" "RECOVERY_SEED_PASSWORD"
+  else
+    echo "NOTICE: encrypted archive exists ($SEED_DIR/home-config.tar.gz.aes256) and password is not set. Set RECOVERY_SEED_PASSWORD to auto-decrypt or run collectors/decrypt_seed.sh manually." >&2
+  fi
+fi
+
 if ! command -v ansible-playbook >/dev/null 2>&1; then
   echo "ERROR: ansible-playbook not found. Install Ansible first: apt-get update && apt-get install -y ansible" >&2
   exit 1

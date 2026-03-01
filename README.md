@@ -54,6 +54,12 @@ fi
 ./scripts/run_rebuild.sh
 ```
 
+`run_rebuild.sh` can also auto-decrypt when password is provided:
+
+```bash
+RECOVERY_SEED_PASSWORD=... ./scripts/run_rebuild.sh
+```
+
 `run_rebuild.sh` will:
 
 - run `collectors/sync_seed_to_vars.sh` automatically
@@ -99,4 +105,3 @@ source /home/aziz0220/.zshrc
 java -version
 node -v
 ```
-
