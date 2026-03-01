@@ -42,12 +42,34 @@
     msg: "Skipping unavailable packages: {{ _missing_packages | join(', ') }}"
   when: _missing_packages | length > 0
 
-- name: Install package set available on target release
+- name: Install available snapshot packages one-by-one (conflict tolerant)
   ansible.builtin.apt:
-    name: "{{ _available_packages }}"
+    name: "{{ item }}"
     state: present
     install_recommends: false
+  loop: "{{ _available_packages }}"
+  register: _package_install_results
+  failed_when: false
   when: _available_packages | length > 0
+
+- name: Collect packages that failed to install
+  ansible.builtin.set_fact:
+    _failed_package_installs: >-
+      {{
+        _package_install_results.results
+        | selectattr('failed', 'defined')
+        | selectattr('failed')
+        | map(attribute='item')
+        | list
+      }}
+  when: _package_install_results is defined
+
+- name: Show packages skipped due install conflicts/errors
+  ansible.builtin.debug:
+    msg: "Skipping packages that failed to install cleanly: {{ _failed_package_installs | join(', ') }}"
+  when:
+    - _failed_package_installs is defined
+    - _failed_package_installs | length > 0
 
 - name: Check whether snap command is available
   ansible.builtin.command:
