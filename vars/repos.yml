@@ -1,23 +1,178 @@
 repositories:
-  - name: "cli-agent-orchestrator"
-    path: "{{ user_home }}/cli-agent-orchestrator"
-    clone_from: "https://github.com/aziz0220/cli-agent-orchestrator.git"
+  - name: "anthropic-agent-skills"
+    path: "{{ user_home }}/.claude/plugins/marketplaces/anthropic-agent-skills"
+    clone_from: "https://github.com/anthropics/skills.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/cli-agent-orchestrator.git"
-      upstream: "https://github.com/awslabs/cli-agent-orchestrator.git"
+      origin: "https://github.com/anthropics/skills.git"
+  - name: "claude-plugins-official"
+    path: "{{ user_home }}/.claude/plugins/marketplaces/claude-plugins-official"
+    clone_from: "https://github.com/anthropics/claude-plugins-official.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/anthropics/claude-plugins-official.git"
+  - name: "nvim"
+    path: "{{ user_home }}/.config/nvim"
+    clone_from: "https://github.com/nvim-lua/kickstart.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-lua/kickstart.nvim.git"
+  - name: ".jenv"
+    path: "{{ user_home }}/.jenv"
+    clone_from: "https://github.com/jenv/jenv.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/jenv/jenv.git"
+  - name: "LuaSnip"
+    path: "{{ user_home }}/.local/share/nvim/lazy/LuaSnip"
+    clone_from: "https://github.com/L3MON4D3/LuaSnip.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/L3MON4D3/LuaSnip.git"
+  - name: "blink.cmp"
+    path: "{{ user_home }}/.local/share/nvim/lazy/blink.cmp"
+    clone_from: "https://github.com/saghen/blink.cmp.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/saghen/blink.cmp.git"
+  - name: "conform.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/conform.nvim"
+    clone_from: "https://github.com/stevearc/conform.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/stevearc/conform.nvim.git"
+  - name: "fidget.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/fidget.nvim"
+    clone_from: "https://github.com/j-hui/fidget.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/j-hui/fidget.nvim.git"
+  - name: "gitsigns.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/gitsigns.nvim"
+    clone_from: "https://github.com/lewis6991/gitsigns.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/lewis6991/gitsigns.nvim.git"
+  - name: "guess-indent.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/guess-indent.nvim"
+    clone_from: "https://github.com/NMAC427/guess-indent.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/NMAC427/guess-indent.nvim.git"
+  - name: "lazy.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/lazy.nvim"
+    clone_from: "https://github.com/folke/lazy.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/lazy.nvim.git"
+  - name: "lazydev.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/lazydev.nvim"
+    clone_from: "https://github.com/folke/lazydev.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/lazydev.nvim.git"
+  - name: "mason-lspconfig.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mason-lspconfig.nvim"
+    clone_from: "https://github.com/mason-org/mason-lspconfig.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/mason-org/mason-lspconfig.nvim.git"
+  - name: "mason-tool-installer.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mason-tool-installer.nvim"
+    clone_from: "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim.git"
+  - name: "mason.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mason.nvim"
+    clone_from: "https://github.com/mason-org/mason.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/mason-org/mason.nvim.git"
+  - name: "mini.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mini.nvim"
+    clone_from: "https://github.com/echasnovski/mini.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/echasnovski/mini.nvim.git"
+  - name: "nvim-lspconfig"
+    path: "{{ user_home }}/.local/share/nvim/lazy/nvim-lspconfig"
+    clone_from: "https://github.com/neovim/nvim-lspconfig.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/neovim/nvim-lspconfig.git"
+  - name: "nvim-treesitter"
+    path: "{{ user_home }}/.local/share/nvim/lazy/nvim-treesitter"
+    clone_from: "https://github.com/nvim-treesitter/nvim-treesitter.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-treesitter/nvim-treesitter.git"
+  - name: "plenary.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/plenary.nvim"
+    clone_from: "https://github.com/nvim-lua/plenary.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-lua/plenary.nvim.git"
+  - name: "telescope-fzf-native.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/telescope-fzf-native.nvim"
+    clone_from: "https://github.com/nvim-telescope/telescope-fzf-native.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-telescope/telescope-fzf-native.nvim.git"
+  - name: "telescope-ui-select.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/telescope-ui-select.nvim"
+    clone_from: "https://github.com/nvim-telescope/telescope-ui-select.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-telescope/telescope-ui-select.nvim.git"
+  - name: "telescope.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/telescope.nvim"
+    clone_from: "https://github.com/nvim-telescope/telescope.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-telescope/telescope.nvim.git"
+  - name: "todo-comments.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/todo-comments.nvim"
+    clone_from: "https://github.com/folke/todo-comments.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/todo-comments.nvim.git"
+  - name: "tokyonight.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/tokyonight.nvim"
+    clone_from: "https://github.com/folke/tokyonight.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/tokyonight.nvim.git"
+  - name: "which-key.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/which-key.nvim"
+    clone_from: "https://github.com/folke/which-key.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/which-key.nvim.git"
   - name: ".nvm"
     path: "{{ user_home }}/.nvm"
     clone_from: "https://github.com/nvm-sh/nvm.git"
     clone_if_missing: true
     remotes:
       origin: "https://github.com/nvm-sh/nvm.git"
-  - name: "pipmedia"
-    path: "{{ user_home }}/pipmedia"
-    clone_from: "git@github.com:aziz0220/pipmedia.git"
+  - name: ".oh-my-zsh"
+    path: "{{ user_home }}/.oh-my-zsh"
+    clone_from: "https://github.com/ohmyzsh/ohmyzsh.git"
     clone_if_missing: true
     remotes:
-      origin: "git@github.com:aziz0220/pipmedia.git"
+      origin: "https://github.com/ohmyzsh/ohmyzsh.git"
+  - name: "zsh-autosuggestions"
+    path: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    clone_from: "https://github.com/zsh-users/zsh-autosuggestions"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/zsh-users/zsh-autosuggestions"
+  - name: "zsh-syntax-highlighting"
+    path: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+    clone_from: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
   - name: "RefactorBench"
     path: "{{ user_home }}/RefactorBench"
     clone_from: "https://github.com/aziz0220/RefactorBench.git"
@@ -25,39 +180,261 @@ repositories:
     remotes:
       origin: "https://github.com/aziz0220/RefactorBench.git"
       upstream: "https://github.com/microsoft/RefactorBench.git"
-  - name: ".oh-my-zsh"
-    path: "{{ user_home }}/.oh-my-zsh"
-    clone_from: "https://github.com/ohmyzsh/ohmyzsh.git"
-    clone_if_missing: true
-    remotes:
-      origin: "https://github.com/ohmyzsh/ohmyzsh.git"
-  - name: "Tipico---Multi-Agent-for-Code-Refactoring"
-    path: "{{ user_home }}/Tipico---Multi-Agent-for-Code-Refactoring"
-    clone_from: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
   - name: "SWE-Refactor-copilot-lsp-parallel"
     path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel"
     clone_from: ""
     clone_if_missing: false
     remotes:
       origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor"
+  - name: "checkstyle"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/checkstyle"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/checkstyle"
+  - name: "commons-io"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/commons-io"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/commons-io"
+  - name: "commons-lang"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/commons-lang"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/commons-lang"
+  - name: "gson"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/gson"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/gson"
+  - name: "guava"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/guava"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/guava"
+  - name: "hertzbeat"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/hertzbeat"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/hertzbeat"
+  - name: "hibernate-orm"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/hibernate-orm"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/hibernate-orm"
+  - name: "hibernate-search"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/hibernate-search"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/hibernate-search"
+  - name: "jadx"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/jadx"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/jadx"
+  - name: "javaparser"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/javaparser"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/javaparser"
+  - name: "junit4"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/junit4"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/junit4"
+  - name: "junit5"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/junit5"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/junit5"
+  - name: "mockito"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/mockito"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/mockito"
+  - name: "pmd"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/pmd"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/pmd"
+  - name: "shardingsphere-elasticjob"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/shardingsphere-elasticjob"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/shardingsphere-elasticjob"
+  - name: "shenyu"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/shenyu"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/shenyu"
+  - name: "shiro"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/shiro"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/shiro"
+  - name: "zxing"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor-copilot-lsp-parallel/code/projects/zxing"
+    clone_from: ""
+    clone_if_missing: false
+    remotes:
+      origin: "/home/aziz0220/SWE-Refactor/SWE-Refactor/code/projects/zxing"
   - name: "SWE-Refactor"
     path: "{{ user_home }}/SWE-Refactor/SWE-Refactor"
     clone_from: "git@github.com:aziz0220/SWE-Refactor.git"
     clone_if_missing: true
     remotes:
       origin: "git@github.com:aziz0220/SWE-Refactor.git"
-  - name: ".jenv"
-    path: "{{ user_home }}/.jenv"
-    clone_from: "https://github.com/jenv/jenv.git"
+  - name: "checkstyle"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/checkstyle"
+    clone_from: "https://github.com/checkstyle/checkstyle.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/jenv/jenv.git"
-  - name: "nvim"
-    path: "{{ user_home }}/.config/nvim"
-    clone_from: "https://github.com/nvim-lua/kickstart.nvim.git"
+      origin: "https://github.com/checkstyle/checkstyle.git"
+  - name: "commons-io"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/commons-io"
+    clone_from: "https://github.com/apache/commons-io.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/nvim-lua/kickstart.nvim.git"
+      origin: "https://github.com/apache/commons-io.git"
+  - name: "commons-lang"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/commons-lang"
+    clone_from: "https://github.com/apache/commons-lang.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/apache/commons-lang.git"
+  - name: "gson"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/gson"
+    clone_from: "https://github.com/google/gson.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/google/gson.git"
+  - name: "guava"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/guava"
+    clone_from: "https://github.com/google/guava.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/google/guava.git"
+  - name: "hertzbeat"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/hertzbeat"
+    clone_from: "https://github.com/apache/hertzbeat.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/apache/hertzbeat.git"
+  - name: "hibernate-orm"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/hibernate-orm"
+    clone_from: "https://github.com/hibernate/hibernate-orm.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/hibernate/hibernate-orm.git"
+  - name: "hibernate-search"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/hibernate-search"
+    clone_from: "https://github.com/hibernate/hibernate-search.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/hibernate/hibernate-search.git"
+  - name: "jadx"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/jadx"
+    clone_from: "https://github.com/skylot/jadx.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/skylot/jadx.git"
+  - name: "javaparser"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/javaparser"
+    clone_from: "https://github.com/javaparser/javaparser.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/javaparser/javaparser.git"
+  - name: "junit4"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/junit4"
+    clone_from: "https://github.com/junit-team/junit4.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/junit-team/junit4.git"
+  - name: "junit5"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/junit5"
+    clone_from: "https://github.com/junit-team/junit5.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/junit-team/junit5.git"
+  - name: "mockito"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/mockito"
+    clone_from: "https://github.com/mockito/mockito.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/mockito/mockito.git"
+  - name: "pmd"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/pmd"
+    clone_from: "https://github.com/pmd/pmd.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/pmd/pmd.git"
+  - name: "shardingsphere-elasticjob"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/shardingsphere-elasticjob"
+    clone_from: "https://github.com/apache/shardingsphere-elasticjob.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/apache/shardingsphere-elasticjob.git"
+  - name: "shenyu"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/shenyu"
+    clone_from: "https://github.com/apache/shenyu.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/apache/shenyu.git"
+  - name: "shiro"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/shiro"
+    clone_from: "https://github.com/apache/shiro.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/apache/shiro.git"
+  - name: "zxing"
+    path: "{{ user_home }}/SWE-Refactor/SWE-Refactor/code/projects/zxing"
+    clone_from: "https://github.com/zxing/zxing.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/zxing/zxing.git"
+  - name: "Tipico---Multi-Agent-for-Code-Refactoring"
+    path: "{{ user_home }}/Tipico---Multi-Agent-for-Code-Refactoring"
+    clone_from: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
+    clone_if_missing: true
+    remotes:
+      origin: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
+  - name: "cli-agent-orchestrator"
+    path: "{{ user_home }}/cli-agent-orchestrator"
+    clone_from: "https://github.com/aziz0220/cli-agent-orchestrator.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/aziz0220/cli-agent-orchestrator.git"
+      upstream: "https://github.com/awslabs/cli-agent-orchestrator.git"
+  - name: "pipmedia"
+    path: "{{ user_home }}/pipmedia"
+    clone_from: "git@github.com:aziz0220/pipmedia.git"
+    clone_if_missing: true
+    remotes:
+      origin: "git@github.com:aziz0220/pipmedia.git"
+  - name: "ubuntu22-rebuild"
+    path: "{{ user_home }}/ubuntu22-rebuild"
+    clone_from: "git@github.com:aziz0220/ubuntu-setup.git"
+    clone_if_missing: true
+    remotes:
+      origin: "git@github.com:aziz0220/ubuntu-setup.git"
+  - name: "SWE-Refactor"
+    path: "{{ user_home }}/SWE-Refactor"
+    clone_from: ""
+    clone_if_missing: false
+    remotes: {}

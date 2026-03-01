@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PLAYBOOK="${ANSIBLE_PLAYBOOK_FILE:-local.yml}"
+TAG_SET="${1:-all}"
+
+if ! command -v ansible-playbook >/dev/null 2>&1; then
+  echo "ERROR: ansible-playbook is not installed. Run ./install first." >&2
+  exit 1
+fi
+
+ANSIBLE_CMD=(ansible-playbook "$PLAYBOOK")
+if [ "$TAG_SET" != "all" ]; then
+  ANSIBLE_CMD+=(--tags "$TAG_SET")
+fi
+
+if [ "$(id -u)" -ne 0 ]; then
+  if command -v sudo >/dev/null 2>&1; then
+    ANSIBLE_CMD=(sudo "${ANSIBLE_CMD[@]}")
+  else
+    echo "ERROR: sudo is required for become tasks." >&2
+    exit 1
+  fi
+fi
+
+"${ANSIBLE_CMD[@]}"

@@ -5,4 +5,8 @@ seed/home
 seed/system
 seed/metadata
 seed/*.tar.gz*
+vault/*.tar
+vault/*.tar.gz
+vault/*.tmp
+vault/*.dec
 *.retry

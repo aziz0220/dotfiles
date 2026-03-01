@@ -23,13 +23,20 @@ write_yaml_array() {
   local output_file="$1"
   local yaml_key="$2"
   local input_file="$3"
-  echo "${yaml_key}:" > "$output_file"
+  echo "${yaml_key}:" >> "$output_file"
   if [ -f "$input_file" ]; then
     while IFS= read -r item; do
       item="$(echo "$item" | tr -d '\r' | awk '{$1=$1; print}')"
       [ -z "$item" ] && continue
       echo "  - $item" >> "$output_file"
     done < "$input_file"
+  fi
+}
+
+first_non_empty_line() {
+  local input_file="$1"
+  if [ -f "$input_file" ]; then
+    awk 'NF {print; exit}' "$input_file"
   fi
 }
 
@@ -102,8 +109,43 @@ EOF
   shopt -u nullglob
 } > "$VAR_DIR/groups.yml"
 
+: > "$VAR_DIR/installed-packages.yml"
 write_yaml_array "$VAR_DIR/installed-packages.yml" "packages" "$META_DIR/installed-packages.txt"
+
+: > "$VAR_DIR/systemd-enabled-services.yml"
 write_yaml_array "$VAR_DIR/systemd-enabled-services.yml" "systemd_services" "$META_DIR/systemd-enabled-services.txt"
+
+: > "$VAR_DIR/snap-list.yml"
+write_yaml_array "$VAR_DIR/snap-list.yml" "snap_list" "$META_DIR/snap-list.txt"
+
+JAVA_DEFAULT="$(first_non_empty_line "$META_DIR/runtimes-sdkman-default-java.txt")"
+MAVEN_DEFAULT="$(first_non_empty_line "$META_DIR/runtimes-sdkman-default-maven.txt")"
+GRADLE_DEFAULT="$(first_non_empty_line "$META_DIR/runtimes-sdkman-default-gradle.txt")"
+
+if [ -z "${JAVA_DEFAULT:-}" ]; then
+  JAVA_DEFAULT="$(first_non_empty_line "$META_DIR/runtimes-sdkman-java.txt")"
+fi
+if [ -z "${MAVEN_DEFAULT:-}" ]; then
+  MAVEN_DEFAULT="$(first_non_empty_line "$META_DIR/runtimes-sdkman-maven.txt")"
+fi
+if [ -z "${GRADLE_DEFAULT:-}" ]; then
+  GRADLE_DEFAULT="$(first_non_empty_line "$META_DIR/runtimes-sdkman-gradle.txt")"
+fi
+
+JAVA_DEFAULT="${JAVA_DEFAULT:-8.0.472-amzn}"
+MAVEN_DEFAULT="${MAVEN_DEFAULT:-3.9.12}"
+GRADLE_DEFAULT="${GRADLE_DEFAULT:-9.3.1}"
+
+: > "$VAR_DIR/runtimes.yml"
+write_yaml_array "$VAR_DIR/runtimes.yml" "node_versions" "$META_DIR/runtimes-node.txt"
+write_yaml_array "$VAR_DIR/runtimes.yml" "sdkman_java_versions" "$META_DIR/runtimes-sdkman-java.txt"
+write_yaml_array "$VAR_DIR/runtimes.yml" "sdkman_gradle_versions" "$META_DIR/runtimes-sdkman-gradle.txt"
+write_yaml_array "$VAR_DIR/runtimes.yml" "sdkman_maven_versions" "$META_DIR/runtimes-sdkman-maven.txt"
+cat >> "$VAR_DIR/runtimes.yml" <<EOF
+sdkman_default_java: ${JAVA_DEFAULT}
+sdkman_default_gradle: ${GRADLE_DEFAULT}
+sdkman_default_maven: ${MAVEN_DEFAULT}
+EOF
 
 if [ -f "$SYSTEM_DIR/etc_apt_sources.list" ]; then
   cp -f "$SYSTEM_DIR/etc_apt_sources.list" "$PLAYBOOK_DIR/roles/system_setup/files/etc_apt_sources.list"
@@ -125,11 +167,11 @@ declare -a required_repos=(
   "RefactorBench"
 )
 
-declare -A repo_path
-declare -A repo_origin
-declare -A repo_upstream
-declare -A repo_seen
-declare -a repo_order
+declare -A repo_name_by_path
+declare -A repo_origin_by_path
+declare -A repo_upstream_by_path
+declare -A repo_seen_path
+declare -a repo_paths_order
 
 if [ -f "$REPO_REMOTE_FILE" ]; then
   current_name=""
@@ -138,16 +180,17 @@ if [ -f "$REPO_REMOTE_FILE" ]; then
   current_upstream=""
 
   flush_repo_entry() {
-    if [ -z "$current_name" ]; then
+    if [ -z "$current_path" ]; then
       return
     fi
-    if [ -z "${repo_seen[$current_name]+x}" ]; then
-      repo_order+=("$current_name")
-      repo_seen[$current_name]="1"
+    local path_key="$current_path"
+    if [ -z "${repo_seen_path[$path_key]+x}" ]; then
+      repo_paths_order+=("$path_key")
+      repo_seen_path["$path_key"]="1"
     fi
-    repo_path["$current_name"]="$current_path"
-    repo_origin["$current_name"]="$current_origin"
-    repo_upstream["$current_name"]="$current_upstream"
+    repo_name_by_path["$path_key"]="$current_name"
+    repo_origin_by_path["$path_key"]="$current_origin"
+    repo_upstream_by_path["$path_key"]="$current_upstream"
   }
 
   while IFS= read -r line || [ -n "$line" ]; do
@@ -189,17 +232,17 @@ if [ -f "$REPO_REMOTE_FILE" ]; then
 fi
 
 ensure_repo() {
-  local name="$1"
-  local path="$2"
+  local display_name="$1"
+  local path_key="$2"
   local origin="$3"
   local upstream="$4"
-  if [ -z "${repo_seen[$name]+x}" ]; then
-    repo_order+=("$name")
-    repo_seen["$name"]="1"
+  if [ -z "${repo_seen_path[$path_key]+x}" ]; then
+    repo_paths_order+=("$path_key")
+    repo_seen_path["$path_key"]="1"
   fi
-  repo_path["$name"]="$path"
-  repo_origin["$name"]="$origin"
-  repo_upstream["$name"]="$upstream"
+  repo_name_by_path["$path_key"]="$display_name"
+  repo_origin_by_path["$path_key"]="$origin"
+  repo_upstream_by_path["$path_key"]="$upstream"
 }
 
 ensure_repo "cli-agent-orchestrator" "$USER_HOME/cli-agent-orchestrator" "https://github.com/aziz0220/cli-agent-orchestrator.git" "https://github.com/awslabs/cli-agent-orchestrator.git"
@@ -216,24 +259,26 @@ escape_yaml() {
 }
 
 for repo in "${required_repos[@]}"; do
-  if [ -z "${repo_seen[$repo]+x}" ]; then
-    ensure_repo "$repo" "$USER_HOME/$repo" "" ""
+  required_path="$USER_HOME/$repo"
+  if [ -z "${repo_seen_path[$required_path]+x}" ]; then
+    ensure_repo "$repo" "$required_path" "" ""
   fi
 done
 
-for repo in "${repo_order[@]}"; do
-  if [ "${repo_path[$repo]:-}" = "" ]; then
+for repo_path_key in "${repo_paths_order[@]}"; do
+  if [ -z "${repo_path_key:-}" ]; then
     continue
   fi
-  yaml_name="$(escape_yaml "$repo")"
-  yaml_path="${repo_path[$repo]}"
+  display_name="${repo_name_by_path[$repo_path_key]:-$(basename "$repo_path_key")}"
+  yaml_name="$(escape_yaml "$display_name")"
+  yaml_path="$repo_path_key"
   if [[ "$yaml_path" == "$USER_HOME/"* ]]; then
     rel_path="${yaml_path#$USER_HOME/}"
     yaml_dest="{{ user_home }}/$rel_path"
   else
     yaml_dest="$(escape_yaml "$yaml_path")"
   fi
-  clone_from="${repo_origin[$repo]:-}"
+  clone_from="${repo_origin_by_path[$repo_path_key]:-}"
   clone_if_missing="false"
   if [[ "$clone_from" == https://* || "$clone_from" == git@* || "$clone_from" == ssh://* ]]; then
     clone_if_missing="true"
@@ -247,16 +292,16 @@ for repo in "${repo_order[@]}"; do
       echo "    clone_from: \"\""
     fi
   echo "    clone_if_missing: ${clone_if_missing}"
-    if [ -z "${repo_origin[$repo]:-}" ] && [ -z "${repo_upstream[$repo]:-}" ]; then
+    if [ -z "${repo_origin_by_path[$repo_path_key]:-}" ] && [ -z "${repo_upstream_by_path[$repo_path_key]:-}" ]; then
       echo "    remotes: {}"
     else
       echo "    remotes:"
     fi
-    if [ -n "${repo_origin[$repo]:-}" ]; then
-      echo "      origin: \"$(escape_yaml "${repo_origin[$repo]}")\""
+    if [ -n "${repo_origin_by_path[$repo_path_key]:-}" ]; then
+      echo "      origin: \"$(escape_yaml "${repo_origin_by_path[$repo_path_key]}")\""
     fi
-    if [ -n "${repo_upstream[$repo]:-}" ]; then
-      echo "      upstream: \"$(escape_yaml "${repo_upstream[$repo]}")\""
+    if [ -n "${repo_upstream_by_path[$repo_path_key]:-}" ]; then
+      echo "      upstream: \"$(escape_yaml "${repo_upstream_by_path[$repo_path_key]}")\""
     fi
   } >> "$VAR_DIR/repos.yml"
   done

@@ -1,0 +1,9 @@
+---
+- name: Apply core system role
+  ansible.builtin.include_role:
+    name: system_setup
+  tags:
+    - system
+    - base
+    - install
+    - core

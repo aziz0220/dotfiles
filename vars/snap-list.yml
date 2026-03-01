@@ -1,4 +1,3 @@
 snap_list:
   - core22
-  - go
   - snapd

@@ -118,19 +118,55 @@
   loop: "{{ repositories }}"
   register: repository_paths
 
+- name: Ensure ownership for existing repositories
+  ansible.builtin.file:
+    path: "{{ item.item.path }}"
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    recurse: true
+  loop: "{{ repository_paths.results }}"
+  when: item.stat.exists
+
 - name: Clone missing repositories from remote URLs
   ansible.builtin.git:
     repo: "{{ item.item.clone_from }}"
     dest: "{{ item.item.path }}"
     update: false
     depth: 1
+    recursive: false
   loop: "{{ repository_paths.results }}"
+  register: repository_clone_attempts
   become_user: "{{ user_name }}"
   failed_when: false
   when:
     - item.item.clone_if_missing | default(true)
     - item.item.clone_from | default('') | length > 0
     - not item.stat.exists
+
+- name: Collect repository clone failures
+  ansible.builtin.set_fact:
+    _failed_repository_clones: >-
+      {{
+        repository_clone_attempts.results
+        | selectattr('failed', 'defined')
+        | selectattr('failed')
+        | map(attribute='item.item.name')
+        | list
+      }}
+  when: repository_clone_attempts is defined
+
+- name: Fail when required repository clones are missing
+  ansible.builtin.fail:
+    msg: "Failed to clone repositories: {{ _failed_repository_clones | join(', ') }}. Verify Git credentials and SSH keys."
+  when:
+    - _failed_repository_clones is defined
+    - _failed_repository_clones | length > 0
+
+- name: Refresh repository destination status
+  ansible.builtin.stat:
+    path: "{{ item.path }}"
+  loop: "{{ repositories }}"
+  register: repository_paths_after_clone
 
 - name: Ensure origin remote for restored repositories
   ansible.builtin.shell:
@@ -143,7 +179,7 @@
           git remote add origin "{{ item.item.remotes.origin }}"
         fi
       fi
-  loop: "{{ repository_paths.results }}"
+  loop: "{{ repository_paths_after_clone.results }}"
   become_user: "{{ user_name }}"
   failed_when: false
   when:
@@ -162,7 +198,7 @@
           git remote add upstream "{{ item.item.remotes.upstream }}"
         fi
       fi
-  loop: "{{ repository_paths.results }}"
+  loop: "{{ repository_paths_after_clone.results }}"
   become_user: "{{ user_name }}"
   failed_when: false
   when:

@@ -3,42 +3,133 @@
   ansible.builtin.apt:
     update_cache: true
 
-- name: Install system package set from snapshot
+- name: Ensure runtime package prerequisites are installed
   ansible.builtin.apt:
-    name: "{{ packages }}"
+    name:
+      - curl
+      - tar
+      - unzip
+      - zip
+      - ca-certificates
+      - git
     state: present
     install_recommends: false
-  register: apt_install
-  ignore_errors: true
 
-- name: Install known snaps from snapshot
-  ansible.builtin.shell: "snap install {{ item }}"
-  args:
-    executable: /bin/bash
-  loop: "{{ snap_list }}"
-  register: snap_install
+- name: Probe snapshot package availability on target release
+  ansible.builtin.command:
+    cmd: "apt-cache show {{ item }}"
+  loop: "{{ packages | unique }}"
+  register: _package_probe
+  changed_when: false
   failed_when: false
 
-- name: Ensure snapd and snap services are enabled
+- name: Build installable package list
+  ansible.builtin.set_fact:
+    _available_packages: >-
+      {{
+        _package_probe.results
+        | selectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
+
+- name: Build unavailable package list
+  ansible.builtin.set_fact:
+    _missing_packages: "{{ (packages | unique) | difference(_available_packages) }}"
+
+- name: Show snapshot packages unavailable on this target release
+  ansible.builtin.debug:
+    msg: "Skipping unavailable packages: {{ _missing_packages | join(', ') }}"
+  when: _missing_packages | length > 0
+
+- name: Install package set available on target release
+  ansible.builtin.apt:
+    name: "{{ _available_packages }}"
+    state: present
+    install_recommends: false
+  when: _available_packages | length > 0
+
+- name: Check whether snap command is available
+  ansible.builtin.command:
+    cmd: which snap
+  register: _snap_binary
+  changed_when: false
+  failed_when: false
+
+- name: Read currently installed snap names
+  ansible.builtin.shell: |
+    snap list | awk 'NR>1 {print $1}' | sort -u
+  args:
+    executable: /bin/bash
+  register: _installed_snaps_cmd
+  changed_when: false
+  when: _snap_binary.rc == 0
+
+- name: Build currently installed snap set
+  ansible.builtin.set_fact:
+    _installed_snaps: "{{ _installed_snaps_cmd.stdout_lines | default([]) }}"
+  when: _snap_binary.rc == 0
+
+- name: Compute missing snaps from snapshot
+  ansible.builtin.set_fact:
+    _snaps_to_install: "{{ snap_list | difference(_installed_snaps | default([])) }}"
+  when: _snap_binary.rc == 0
+
+- name: Install missing snaps from snapshot
+  ansible.builtin.command:
+    cmd: "snap install {{ item }}"
+  loop: "{{ _snaps_to_install }}"
+  register: _snap_install_results
+  changed_when: true
+  failed_when: false
+  when:
+    - _snap_binary.rc == 0
+    - _snaps_to_install | length > 0
+
+- name: Collect failed snap installs
+  ansible.builtin.set_fact:
+    _failed_snap_installs: >-
+      {{
+        _snap_install_results.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
+  when: _snap_install_results is defined
+
+- name: Fail when any required snap failed to install
+  ansible.builtin.fail:
+    msg: "Failed to install required snaps: {{ _failed_snap_installs | join(', ') }}"
+  when:
+    - _failed_snap_installs is defined
+    - _failed_snap_installs | length > 0
+
+- name: Ensure snapd service is enabled when available
   ansible.builtin.systemd:
     name: snapd
     enabled: true
     state: started
-  ignore_errors: true
+  failed_when: false
+  when: _snap_binary.rc == 0
 
-- name: Build local tool dirs in home (safe only)
+- name: Build local tool directories in home
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     owner: "{{ user_name }}"
     group: "{{ user_name }}"
-    mode: '0755'
+    mode: "0755"
   loop:
     - "{{ user_home }}/.npm-global"
     - "{{ user_home }}/.local"
     - "{{ user_home }}/go/bin"
-  ignore_errors: true
   become_user: "{{ user_name }}"
+
+- name: Check if nvm checkout already exists
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.nvm/.git"
+  register: _nvm_git_dir
 
 - name: Restore nvm checkout if not present
   ansible.builtin.git:
@@ -46,20 +137,45 @@
     dest: "{{ user_home }}/.nvm"
     depth: 1
     update: false
+    recursive: false
   become_user: "{{ user_name }}"
-  ignore_errors: true
+  when: not _nvm_git_dir.stat.exists
+
+- name: Check nvm bootstrap script
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.nvm/nvm.sh"
+  register: _nvm_script
+
+- name: Fail when nvm bootstrap script is missing
+  ansible.builtin.fail:
+    msg: "Missing nvm bootstrap script at {{ user_home }}/.nvm/nvm.sh"
+  when: not _nvm_script.stat.exists
 
 - name: Install Node runtimes with nvm
   ansible.builtin.shell: |
     set -e
     . "{{ user_home }}/.nvm/nvm.sh"
     nvm install "{{ item }}"
-    nvm alias default "{{ node_versions[0] }}"
   args:
     executable: /bin/bash
   loop: "{{ node_versions }}"
   become_user: "{{ user_name }}"
-  failed_when: false
+  when: node_versions | length > 0
+
+- name: Set default Node runtime
+  ansible.builtin.shell: |
+    set -e
+    . "{{ user_home }}/.nvm/nvm.sh"
+    nvm alias default "{{ node_versions[0] }}"
+  args:
+    executable: /bin/bash
+  become_user: "{{ user_name }}"
+  when: node_versions | length > 0
+
+- name: Check if jenv checkout already exists
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.jenv/.git"
+  register: _jenv_git_dir
 
 - name: Restore jenv checkout if not present
   ansible.builtin.git:
@@ -67,8 +183,9 @@
     dest: "{{ user_home }}/.jenv"
     depth: 1
     update: false
+    recursive: false
   become_user: "{{ user_name }}"
-  ignore_errors: true
+  when: not _jenv_git_dir.stat.exists
 
 - name: Install SDKMAN
   ansible.builtin.shell: |
@@ -77,46 +194,97 @@
     executable: /bin/bash
     creates: "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
   become_user: "{{ user_name }}"
-  failed_when: false
+
+- name: Check SDKMAN bootstrap script
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+  register: _sdkman_script
+
+- name: Fail when SDKMAN bootstrap script is missing
+  ansible.builtin.fail:
+    msg: "Missing SDKMAN bootstrap script at {{ user_home }}/.sdkman/bin/sdkman-init.sh"
+  when: not _sdkman_script.stat.exists
 
 - name: Install SDKMAN Java versions
   ansible.builtin.shell: |
     set -e
     source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
     sdk install java "{{ item }}"
-    if [ "{{ item }}" = "{{ sdkman_default_java }}" ]; then
-      sdk default java "{{ item }}"
-    fi
   args:
     executable: /bin/bash
+    creates: "{{ user_home }}/.sdkman/candidates/java/{{ item }}"
   loop: "{{ sdkman_java_versions }}"
   become_user: "{{ user_name }}"
-  failed_when: false
+  environment:
+    HOME: "{{ user_home }}"
+    SDKMAN_DIR: "{{ user_home }}/.sdkman"
+    SDKMAN_AUTO_ANSWER: "true"
+
+- name: Set default SDKMAN Java version
+  ansible.builtin.shell: |
+    set -e
+    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+    sdk default java "{{ sdkman_default_java }}"
+  args:
+    executable: /bin/bash
+  become_user: "{{ user_name }}"
+  environment:
+    HOME: "{{ user_home }}"
+    SDKMAN_DIR: "{{ user_home }}/.sdkman"
+    SDKMAN_AUTO_ANSWER: "true"
 
 - name: Install SDKMAN Maven versions
   ansible.builtin.shell: |
     set -e
     source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
     sdk install maven "{{ item }}"
-    if [ "{{ item }}" = "{{ sdkman_default_maven }}" ]; then
-      sdk default maven "{{ item }}"
-    fi
   args:
     executable: /bin/bash
+    creates: "{{ user_home }}/.sdkman/candidates/maven/{{ item }}"
   loop: "{{ sdkman_maven_versions }}"
   become_user: "{{ user_name }}"
-  failed_when: false
+  environment:
+    HOME: "{{ user_home }}"
+    SDKMAN_DIR: "{{ user_home }}/.sdkman"
+    SDKMAN_AUTO_ANSWER: "true"
+
+- name: Set default SDKMAN Maven version
+  ansible.builtin.shell: |
+    set -e
+    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+    sdk default maven "{{ sdkman_default_maven }}"
+  args:
+    executable: /bin/bash
+  become_user: "{{ user_name }}"
+  environment:
+    HOME: "{{ user_home }}"
+    SDKMAN_DIR: "{{ user_home }}/.sdkman"
+    SDKMAN_AUTO_ANSWER: "true"
 
 - name: Install SDKMAN Gradle versions
   ansible.builtin.shell: |
     set -e
     source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
     sdk install gradle "{{ item }}"
-    if [ "{{ item }}" = "{{ sdkman_default_gradle }}" ]; then
-      sdk default gradle "{{ item }}"
-    fi
   args:
     executable: /bin/bash
+    creates: "{{ user_home }}/.sdkman/candidates/gradle/{{ item }}"
   loop: "{{ sdkman_gradle_versions }}"
   become_user: "{{ user_name }}"
-  failed_when: false
+  environment:
+    HOME: "{{ user_home }}"
+    SDKMAN_DIR: "{{ user_home }}/.sdkman"
+    SDKMAN_AUTO_ANSWER: "true"
+
+- name: Set default SDKMAN Gradle version
+  ansible.builtin.shell: |
+    set -e
+    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+    sdk default gradle "{{ sdkman_default_gradle }}"
+  args:
+    executable: /bin/bash
+  become_user: "{{ user_name }}"
+  environment:
+    HOME: "{{ user_home }}"
+    SDKMAN_DIR: "{{ user_home }}/.sdkman"
+    SDKMAN_AUTO_ANSWER: "true"

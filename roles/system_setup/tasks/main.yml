@@ -77,10 +77,46 @@
   ansible.builtin.apt:
     update_cache: true
 
-- name: Ensure required systemctl services are enabled
+- name: Gather available services on target
+  ansible.builtin.service_facts:
+
+- name: Resolve snapshot services available on target
+  ansible.builtin.set_fact:
+    _available_systemd_services: "{{ systemd_services | select('in', ansible_facts.services.keys() | list) | list }}"
+
+- name: Resolve snapshot services missing on target
+  ansible.builtin.set_fact:
+    _missing_systemd_services: "{{ systemd_services | difference(_available_systemd_services) }}"
+
+- name: Show services missing on target (skipped)
+  ansible.builtin.debug:
+    msg: "Skipping unavailable services: {{ _missing_systemd_services | join(', ') }}"
+  when: _missing_systemd_services | length > 0
+
+- name: Ensure available snapshot services are enabled
   ansible.builtin.systemd:
     name: "{{ item }}"
     enabled: true
     state: started
-  loop: "{{ systemd_services }}"
-  ignore_errors: true
+  loop: "{{ _available_systemd_services }}"
+  register: _service_enable_results
+  failed_when: false
+
+- name: Collect service enable failures
+  ansible.builtin.set_fact:
+    _service_enable_failures: >-
+      {{
+        _service_enable_results.results
+        | selectattr('failed', 'defined')
+        | selectattr('failed')
+        | map(attribute='item')
+        | list
+      }}
+  when: _service_enable_results is defined
+
+- name: Show service enable failures
+  ansible.builtin.debug:
+    msg: "Services present but not enabled/started: {{ _service_enable_failures | join(', ') }}"
+  when:
+    - _service_enable_failures is defined
+    - _service_enable_failures | length > 0

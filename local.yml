@@ -1,0 +1,49 @@
+---
+- name: Primeagen-style local bootstrap entrypoint
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  vars:
+    seed_root: "{{ playbook_dir }}/seed"
+    user_home: "/home/{{ user_name }}"
+
+  vars_files:
+    - vars/user-profile.yml
+    - vars/system-locale.yml
+    - vars/installed-packages.yml
+    - vars/systemd-enabled-services.yml
+    - vars/snap-list.yml
+    - vars/groups.yml
+    - vars/runtimes.yml
+    - vars/repos.yml
+
+  pre_tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        force_apt_get: true
+        update_cache: true
+        cache_valid_time: 3600
+      tags:
+        - install
+        - core
+
+    - name: Show restore source
+      ansible.builtin.debug:
+        msg:
+          - "Recovery seed path: {{ seed_root }}"
+          - "Target user: {{ user_name }}"
+
+  tasks:
+    - name: Include ssh setup tasks
+      ansible.builtin.include_tasks: tasks/ssh.yml
+
+    - name: Include core setup tasks
+      ansible.builtin.include_tasks: tasks/core-setup.yml
+
+    - name: Include dotfiles/home setup tasks
+      ansible.builtin.include_tasks: tasks/dotfiles.yml
+
+    - name: Include node/runtime setup tasks
+      ansible.builtin.include_tasks: tasks/node-setup.yml

@@ -12,6 +12,8 @@ systemd_services:
   - cloud-init.service
   - console-setup.service
   - cron.service
+  - dbus-org.freedesktop.resolve1.service
+  - dbus-org.freedesktop.timesync1.service
   - dmesg.service
   - dpkg-db-backup.timer
   - e2scrub_all.timer
@@ -39,6 +41,8 @@ systemd_services:
   - snapd.snap-repair.timer
   - snapd.socket
   - snapd.system-shutdown.service
+  - sudo.service
+  - syslog.service
   - systemd-pstore.service
   - systemd-resolved.service
   - systemd-timesyncd.service

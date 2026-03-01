@@ -1,0 +1,10 @@
+---
+- name: Apply runtime and package role
+  ansible.builtin.include_role:
+    name: app_stack
+  tags:
+    - software
+    - base
+    - install
+    - core
+    - node

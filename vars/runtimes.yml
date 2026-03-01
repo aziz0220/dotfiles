@@ -1,10 +1,10 @@
 node_versions:
   - v24.4.0
 sdkman_java_versions:
-  - 8.0.472-amzn
   - 11.0.30-amzn
   - 17.0.18-amzn
   - 21.0.10-amzn
+  - 8.0.472-amzn
 sdkman_gradle_versions:
   - 9.3.1
 sdkman_maven_versions:
