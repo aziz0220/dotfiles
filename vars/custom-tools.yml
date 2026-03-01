@@ -1,4 +1,23 @@
 custom_tools:
-  # - name: "kiro"
-  #   check_cmd: "command -v kiro"
-  #   install_cmd: "echo 'replace with official Kiro install command'"
+  - name: "kiro-cli"
+    check_cmd: "test -x /home/{{ user_name }}/.local/bin/kiro-cli"
+    install_cmd: |
+      set -euo pipefail
+      curl -fsSL https://cli.kiro.dev/install | bash
+
+  - name: "kiro-ide"
+    check_cmd: "dpkg -s kiro-ide >/dev/null 2>&1 || dpkg -s kiro >/dev/null 2>&1 || command -v kiro >/dev/null 2>&1"
+    become: true
+    install_cmd: |
+      set -euo pipefail
+      tmp_deb="$(mktemp /tmp/kiro-ide-XXXXXX.deb)"
+      trap 'rm -f "$tmp_deb"' EXIT
+
+      deb_url="$(python3 -c 'import json,urllib.request;u="https://prod.download.desktop.kiro.dev/stable/metadata-linux-x64-deb-stable.json";d=json.load(urllib.request.urlopen(u,timeout=20));urls=[r.get("updateTo",{}).get("url","") for r in d.get("releases",[])];deb=next((x for x in urls if x.endswith(".deb")),"");print(deb)')"
+      case "$deb_url" in
+        *.deb) ;;
+        *) echo "metadata did not contain a .deb url" >&2; exit 1 ;;
+      esac
+
+      curl -fL "$deb_url" -o "$tmp_deb"
+      apt-get install -y "$tmp_deb"

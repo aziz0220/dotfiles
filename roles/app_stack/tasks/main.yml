@@ -537,6 +537,8 @@
   register: _custom_tool_installs
   changed_when: true
   failed_when: false
+  become: "{{ item.item.become | default(false) }}"
+  become_user: "{{ item.item.become_user | default(omit) }}"
   when:
     - item.rc is defined
     - item.rc != 0
