@@ -14,9 +14,12 @@ Environment:
 This script:
   1) clones/fetches the repo from GitHub
   2) prepares seed directory (must be provided by user)
-  3) syncs seed metadata into vars
-  4) decrypts seed if encrypted and password is available
-  5) runs ansible playbook with selected tags
+ 3) syncs seed metadata into vars
+ 4) decrypts seed if encrypted and password is available
+ 5) runs ansible playbook with selected tags
+
+Flags:
+  --skip-update  Do not run `git pull` when repo already exists
 USAGE
 }
 
@@ -27,6 +30,7 @@ RECOVERY_ROOT="${RECOVERY_ROOT:-/mnt/recovery}"
 REBUILD_TAGS="${REBUILD_TAGS:-all}"
 TARGET_USER="${TARGET_USER:-aziz0220}"
 DRY_RUN="${DRY_RUN:-0}"
+SKIP_REPO_UPDATE="${SKIP_REPO_UPDATE:-0}"
 
 while [[ ${1-} != "" ]]; do
   case "$1" in
@@ -57,6 +61,9 @@ while [[ ${1-} != "" ]]; do
     --user)
       shift
       TARGET_USER="${1:?missing --user value}"
+      ;;
+    --skip-update)
+      SKIP_REPO_UPDATE="1"
       ;;
     --dry-run)
       DRY_RUN="1"
@@ -104,7 +111,11 @@ if [[ ! -d "$REPO_DIR/.git" ]]; then
   fi
 else
   log "Setup repo already present; updating"
-  (cd "$REPO_DIR" && run_cmd git pull)
+  if [[ "$SKIP_REPO_UPDATE" == "1" ]]; then
+    log "Skipping repo update (--skip-update)"
+  else
+    (cd "$REPO_DIR" && run_cmd git pull)
+  fi
 fi
 
 if [[ ! -f "$SEED_DIR/home-config.tar.gz" && ! -f "$SEED_DIR/home-config.tar.gz.aes256" ]]; then
