@@ -5,6 +5,144 @@ repositories:
     clone_if_missing: true
     remotes:
       origin: "https://github.com/nvim-lua/kickstart.nvim.git"
+  - name: ".nvm"
+    path: "{{ user_home }}/.nvm"
+    clone_from: "https://github.com/nvm-sh/nvm.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvm-sh/nvm.git"
+  - name: ".jenv"
+    path: "{{ user_home }}/.jenv"
+    clone_from: "https://github.com/jenv/jenv.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/jenv/jenv.git"
+  - name: "lazy.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/lazy.nvim"
+    clone_from: "https://github.com/folke/lazy.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/lazy.nvim.git"
+  - name: "nvim-lspconfig"
+    path: "{{ user_home }}/.local/share/nvim/lazy/nvim-lspconfig"
+    clone_from: "https://github.com/neovim/nvim-lspconfig.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/neovim/nvim-lspconfig.git"
+  - name: "nvim-treesitter"
+    path: "{{ user_home }}/.local/share/nvim/lazy/nvim-treesitter"
+    clone_from: "https://github.com/nvim-treesitter/nvim-treesitter.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-treesitter/nvim-treesitter.git"
+  - name: "plenary.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/plenary.nvim"
+    clone_from: "https://github.com/nvim-lua/plenary.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-lua/plenary.nvim.git"
+  - name: "telescope.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/telescope.nvim"
+    clone_from: "https://github.com/nvim-telescope/telescope.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-telescope/telescope.nvim.git"
+  - name: "telescope-fzf-native.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/telescope-fzf-native.nvim"
+    clone_from: "https://github.com/nvim-telescope/telescope-fzf-native.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-telescope/telescope-fzf-native.nvim.git"
+  - name: "telescope-ui-select.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/telescope-ui-select.nvim"
+    clone_from: "https://github.com/nvim-telescope/telescope-ui-select.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/nvim-telescope/telescope-ui-select.nvim.git"
+  - name: "mason.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mason.nvim"
+    clone_from: "https://github.com/mason-org/mason.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/mason-org/mason.nvim.git"
+  - name: "mason-lspconfig.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mason-lspconfig.nvim"
+    clone_from: "https://github.com/mason-org/mason-lspconfig.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/mason-org/mason-lspconfig.nvim.git"
+  - name: "mason-tool-installer.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mason-tool-installer.nvim"
+    clone_from: "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim.git"
+  - name: "which-key.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/which-key.nvim"
+    clone_from: "https://github.com/folke/which-key.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/which-key.nvim.git"
+  - name: "tokyonight.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/tokyonight.nvim"
+    clone_from: "https://github.com/folke/tokyonight.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/tokyonight.nvim.git"
+  - name: "gitsigns.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/gitsigns.nvim"
+    clone_from: "https://github.com/lewis6991/gitsigns.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/lewis6991/gitsigns.nvim.git"
+  - name: "todo-comments.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/todo-comments.nvim"
+    clone_from: "https://github.com/folke/todo-comments.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/todo-comments.nvim.git"
+  - name: "conform.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/conform.nvim"
+    clone_from: "https://github.com/stevearc/conform.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/stevearc/conform.nvim.git"
+  - name: "blink.cmp"
+    path: "{{ user_home }}/.local/share/nvim/lazy/blink.cmp"
+    clone_from: "https://github.com/saghen/blink.cmp.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/saghen/blink.cmp.git"
+  - name: "guess-indent.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/guess-indent.nvim"
+    clone_from: "https://github.com/NMAC427/guess-indent.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/NMAC427/guess-indent.nvim.git"
+  - name: "mini.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/mini.nvim"
+    clone_from: "https://github.com/echasnovski/mini.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/echasnovski/mini.nvim.git"
+  - name: "fidget.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/fidget.nvim"
+    clone_from: "https://github.com/j-hui/fidget.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/j-hui/fidget.nvim.git"
+  - name: "lazydev.nvim"
+    path: "{{ user_home }}/.local/share/nvim/lazy/lazydev.nvim"
+    clone_from: "https://github.com/folke/lazydev.nvim.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/folke/lazydev.nvim.git"
+  - name: "LuaSnip"
+    path: "{{ user_home }}/.local/share/nvim/lazy/LuaSnip"
+    clone_from: "https://github.com/L3MON4D3/LuaSnip.git"
+    clone_if_missing: true
+    remotes:
+      origin: "https://github.com/L3MON4D3/LuaSnip.git"
   - name: ".oh-my-zsh"
     path: "{{ user_home }}/.oh-my-zsh"
     clone_from: "https://github.com/ohmyzsh/ohmyzsh.git"

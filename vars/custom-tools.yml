@@ -1,7 +1,11 @@
 custom_tools:
-  - name: ollama
-    check_cmd: "command -v ollama"
-    install_cmd: "curl -fsSL https://ollama.com/install.sh | sh"
+  - name: neovim
+    check_cmd: "command -v nvim"
+    install_cmd: "sudo apt-get install -y neovim"
+    become: false
+  - name: clangd
+    check_cmd: "command -v clangd"
+    install_cmd: "sudo apt-get install -y clangd-18 && sudo update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-18 100"
     become: false
   - name: kind
     check_cmd: "command -v kind"
