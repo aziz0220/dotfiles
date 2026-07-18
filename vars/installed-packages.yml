@@ -4,7 +4,6 @@ packages:
   - adwaita-icon-theme
   - alsa-topology-conf
   - alsa-ucm-conf
-  - ansible
   - ansible-core
   - apparmor
   - apport
@@ -44,11 +43,9 @@ packages:
   - bzip2
   - ca-certificates
   - ca-certificates-java
-  - clangd
-  - clangd-14
-  - clangd-18
   - cloud-guest-utils
   - cloud-init
+  - cloudflared
   - cmake
   - cmake-data
   - cmdtest
@@ -93,6 +90,7 @@ packages:
   - dmeventd
   - dmidecode
   - dmsetup
+  - dos2unix
   - dosfstools
   - dpkg
   - dpkg-dev
@@ -138,13 +136,11 @@ packages:
   - ftp
   - fuse3
   - g++
-  - g++-11
   - g++-13
   - g++-13-x86-64-linux-gnu
   - g++-x86-64-linux-gnu
   - gawk
   - gcc
-  - gcc-11
   - gcc-11-base
   - gcc-12-base
   - gcc-13
@@ -170,10 +166,6 @@ packages:
   - gnupg
   - gnupg-l10n
   - gnupg-utils
-  - golang-1.18-go
-  - golang-1.18-src
-  - golang-1.22-src
-  - golang-src
   - gpg
   - gpg-agent
   - gpg-wks-client
@@ -186,13 +178,10 @@ packages:
   - groff-base
   - gsettings-desktop-schemas
   - gsfonts
-  - gstreamer1.0-gl
   - gstreamer1.0-plugins-base
   - gstreamer1.0-plugins-good
   - gstreamer1.0-x
   - gtk-update-icon-cache
-  - guestfish
-  - guestfs-tools
   - gyp
   - gzip
   - handlebars
@@ -262,8 +251,6 @@ packages:
   - libassuan0
   - libasyncns0
   - libatk-bridge2.0-0t64
-  - libatk-wrapper-java
-  - libatk-wrapper-java-jni
   - libatk1.0-0t64
   - libatk1.0-data
   - libatm1
@@ -300,6 +287,7 @@ packages:
   - libc6-dev
   - libc6-i386
   - libcaca0
+  - libcacard0
   - libcairo-gobject2
   - libcairo2
   - libcanberra0
@@ -311,10 +299,7 @@ packages:
   - libcbor0.8
   - libcc1-0
   - libcdparanoia0
-  - libclang-common-14-dev
   - libclang-common-18-dev
-  - libclang-cpp14t64
-  - libclang-cpp18
   - libclone-perl
   - libcmark-gfm-extensions0.29.0.gfm.3
   - libcmark-gfm0.29.0.gfm.3
@@ -362,8 +347,6 @@ packages:
   - libdw1t64
   - libeatmydata1
   - libedit2
-  - libegl-mesa0
-  - libegl1
   - libelf1t64
   - libenchant-2-2
   - libencode-locale-perl
@@ -396,9 +379,7 @@ packages:
   - libfontenc1
   - libfreetype6
   - libfribidi0
-  - libfuse2
   - libfuse3-3
-  - libgbm1
   - libgcc-11-dev
   - libgcc-13-dev
   - libgcc-s1
@@ -411,10 +392,7 @@ packages:
   - libgdk-pixbuf2.0-common
   - libgif7
   - libgirepository-1.0-1
-  - libgl-dev
-  - libgl1
   - libgl1-amber-dri
-  - libgl1-mesa-dri
   - libglapi-amber
   - libgles2
   - libglib2.0-0
@@ -422,9 +400,6 @@ packages:
   - libglib2.0-bin
   - libglib2.0-data
   - libglvnd0
-  - libglx-dev
-  - libglx-mesa0
-  - libglx0
   - libgmp-dev
   - libgmp10
   - libgmpxx4ldbl
@@ -442,7 +417,6 @@ packages:
   - libgs10
   - libgs10-common
   - libgssapi-krb5-2
-  - libgstreamer-gl1.0-0
   - libgstreamer-plugins-base1.0-0
   - libgstreamer-plugins-good1.0-0
   - libgstreamer1.0-0
@@ -454,8 +428,6 @@ packages:
   - libgtk2.0-common
   - libgtkd-3-0
   - libgudev-1.0-0
-  - libguestfs-tools
-  - libguestfs0t64
   - libharfbuzz-icu0
   - libharfbuzz0b
   - libheif-plugin-aomdec
@@ -543,11 +515,6 @@ packages:
   - libldap-common
   - libldap2
   - liblerc4
-  - libllvm11
-  - libllvm14t64
-  - libllvm15
-  - libllvm18
-  - libllvm20
   - liblmdb0
   - liblocale-gettext-perl
   - liblqr-1-0
@@ -653,7 +620,6 @@ packages:
   - libpdfbox-java
   - libperl5.38t64
   - libphobos2-ldc-shared106
-  - libphobos2-ldc-shared98
   - libpipeline1
   - libpipewire-0.3-0t64
   - libpipewire-0.3-common
@@ -668,6 +634,7 @@ packages:
   - libpolkit-gobject-1-0
   - libpopt0
   - libpotrace0
+  - libpq5
   - libproc2-0
   - libprocps8
   - libprotobuf23
@@ -691,15 +658,10 @@ packages:
   - libqt6concurrent6t64
   - libqt6core6t64
   - libqt6dbus6t64
-  - libqt6gui6t64
   - libqt6network6t64
-  - libqt6opengl6t64
-  - libqt6openglwidgets6t64
-  - libqt6printsupport6t64
   - libqt6sql6-sqlite
   - libqt6sql6t64
   - libqt6test6t64
-  - libqt6widgets6t64
   - libqt6xml6t64
   - libquadmath0
   - librados2
@@ -788,8 +750,6 @@ packages:
   - libtirpc-dev
   - libtirpc3t64
   - libtk8.6
-  - libtool
-  - libtool-bin
   - libtry-tiny-perl
   - libts0
   - libts0t64
@@ -815,6 +775,7 @@ packages:
   - libv4lconvert0t64
   - libvhdi1
   - libvirt-l10n
+  - libvirt0
   - libvisual-0.4-0
   - libvmdk1
   - libvorbis0a
@@ -835,13 +796,15 @@ packages:
   - libwayland-cursor0
   - libwayland-egl1
   - libwayland-server0
-  - libwebkit2gtk-4.1-0
   - libwebp7
   - libwebpdemux2
   - libwebpmux3
   - libwebrtc-audio-processing1
+  - libwebsockets-evlib-uv
+  - libwebsockets19t64
   - libwmflite-0.2-7
   - libwoff1
+  - libwrap0
   - libwww-perl
   - libwww-robotrules-perl
   - libx11-6
@@ -889,6 +852,7 @@ packages:
   - libxkbfile1
   - libxml-parser-perl
   - libxml-twig-perl
+  - libxml-xpath-perl
   - libxml-xpathengine-perl
   - libxml2
   - libxmlb2
@@ -937,7 +901,6 @@ packages:
   - mawk
   - mdadm
   - media-types
-  - mesa-libgallium
   - motd-news-config
   - mount
   - msr-tools
@@ -946,6 +909,7 @@ packages:
   - nano
   - ncurses-base
   - ncurses-bin
+  - ncurses-term
   - netbase
   - netcat-openbsd
   - netpbm
@@ -1352,15 +1316,9 @@ packages:
   - nodejs-doc
   - npm
   - ntfs-3g
-  - openjdk-17-jdk
-  - openjdk-17-jdk-headless
-  - openjdk-17-jre
-  - openjdk-17-jre-headless
-  - openjdk-21-jdk
-  - openjdk-21-jdk-headless
-  - openjdk-21-jre
-  - openjdk-21-jre-headless
   - openssh-client
+  - openssh-server
+  - openssh-sftp-server
   - openssl
   - osinfo-db
   - ovmf
@@ -1393,6 +1351,9 @@ packages:
   - polkitd
   - poppler-data
   - postfix
+  - postgresql-client
+  - postgresql-client-16
+  - postgresql-client-common
   - powermgmt-base
   - preview-latex-style
   - procps
@@ -1499,6 +1460,7 @@ packages:
   - python3-tz
   - python3-update-manager
   - python3-urllib3
+  - python3-venv
   - python3-wadllib
   - python3-wheel
   - python3-winrm
@@ -1512,16 +1474,14 @@ packages:
   - python3.12
   - python3.12-dev
   - python3.12-minimal
+  - python3.12-venv
   - qemu-block-extra
   - qemu-system-common
   - qemu-system-data
-  - qemu-system-x86
+  - qemu-utils
   - qmake6
   - qmake6-bin
-  - qt6-base-dev
   - qt6-base-dev-tools
-  - qt6-gtk-platformtheme
-  - qt6-qpa-plugins
   - qtchooser
   - rake
   - readline-common
@@ -1558,12 +1518,15 @@ packages:
   - software-properties-common
   - sound-theme-freedesktop
   - squashfs-tools
+  - ssh-import-id
   - ssl-cert
   - strace
+  - stripe
   - sudo
   - supermin
   - syslinux
   - syslinux-common
+  - sysstat
   - systemd
   - systemd-dev
   - systemd-hwe-hwdb
@@ -1572,13 +1535,14 @@ packages:
   - systemd-timesyncd
   - sysvinit-utils
   - t1utils
+  - tailscale
+  - tailscale-archive-keyring
   - tar
   - tcl
   - tcl8.6
   - tcpdump
   - teckit
   - telnet
-  - terraform
   - terser
   - tex-common
   - tex-gyre
@@ -1600,6 +1564,7 @@ packages:
   - tk8.6
   - tmux
   - tnftp
+  - ttyd
   - tzdata
   - ubuntu-advantage-tools
   - ubuntu-keyring
@@ -1609,7 +1574,6 @@ packages:
   - ubuntu-pro-client-l10n
   - ubuntu-release-upgrader-core
   - ubuntu-standard
-  - ubuntu-wsl
   - ucf
   - udev
   - ufw
@@ -1632,7 +1596,6 @@ packages:
   - wsl-setup
   - wslu
   - x11-common
-  - x11-utils
   - x11-xserver-utils
   - x11proto-dev
   - xauth

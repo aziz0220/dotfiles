@@ -1,2 +1,18 @@
 custom_tools:
-  # Add explicit one-off tool installers here when needed.
+  - name: ollama
+    check_cmd: "command -v ollama"
+    install_cmd: "curl -fsSL https://ollama.com/install.sh | sh"
+    become: false
+  - name: kind
+    check_cmd: "command -v kind"
+    install_cmd: |
+      curl -Lo /tmp/kind "https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64" &&
+      chmod +x /tmp/kind &&
+      sudo mv /tmp/kind /usr/local/bin/kind
+    become: true
+  - name: docker
+    check_cmd: "command -v docker"
+    install_cmd: |
+      curl -fsSL https://get.docker.com | sh &&
+      sudo usermod -aG docker {{ user_name }}
+    become: true
