@@ -14,21 +14,28 @@ Goal:
 
 ## Quick Start
 
-On a **new Ubuntu 26.04+ WSL** distro:
+On a **new Ubuntu WSL** distro:
 
 1. Install bootstrap dependencies:
 
 ```bash
-sudo apt-get update && sudo apt-get install -y ansible git curl
+sudo apt-get update && sudo apt-get install -y ansible git curl openssh-client gh
 ```
 
-2. Clone this repo:
+2. Authenticate with GitHub (SSH or token):
 
 ```bash
-git clone https://github.com/aziz0220/ubuntu-setup.git && cd ubuntu-setup
+# Option A: SSH key (recommended - creates a temp key, ansible will restore your real one)
+ssh-keygen -t ed25519 -f ~/.ssh/temp_github -N ""
+cat ~/.ssh/temp_github.pub
+# Add the key at https://github.com/settings/keys, then:
+git clone git@github.com:aziz0220/ubuntu-setup.git && cd ubuntu-setup
+
+# Option B: GitHub personal access token
+git clone https://<TOKEN>@github.com/aziz0220/ubuntu-setup.git && cd ubuntu-setup
 ```
 
-3. Set your secrets password and run full bootstrap:
+3. Set your secrets password and run full bootstrap (auto-detects your username):
 
 ```bash
 export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'

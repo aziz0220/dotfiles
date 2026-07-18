@@ -27,7 +27,21 @@ if [ ! -d "$BOOTSTRAP_HOME_DIR" ]; then
   fi
 fi
 
-ANSIBLE_CMD=(ansible-playbook "$PLAYBOOK")
+CURRENT_USER="$(whoami)"
+CURRENT_HOME="$HOME"
+CURRENT_UID="$(id -u)"
+CURRENT_GID="$(id -g)"
+CURRENT_SHELL="$(basename "$SHELL" 2>/dev/null || echo 'zsh')"
+
+ANSIBLE_CMD=(
+  ansible-playbook "$PLAYBOOK"
+  -e "user_name=$CURRENT_USER"
+  -e "user_home=$CURRENT_HOME"
+  -e "user_uid=$CURRENT_UID"
+  -e "user_gid=$CURRENT_GID"
+  -e "user_shell=$(which "$CURRENT_SHELL" 2>/dev/null || echo /usr/bin/zsh)"
+)
+
 if [ "$TAG_SET" != "all" ]; then
   ANSIBLE_CMD+=(--tags "$TAG_SET")
 fi
@@ -41,4 +55,5 @@ if [ "$(id -u)" -ne 0 ]; then
   fi
 fi
 
+echo "Bootstrapping as user: $CURRENT_USER ($CURRENT_HOME)"
 "${ANSIBLE_CMD[@]}"
