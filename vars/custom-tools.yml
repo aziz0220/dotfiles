@@ -1,4 +1,20 @@
 custom_tools:
+  - name: claude-code
+    check_cmd: "command -v claude"
+    install_cmd: "npm install -g @anthropic-ai/claude-code"
+    become: false
+  - name: opencode
+    check_cmd: "command -v opencode"
+    install_cmd: "npm install -g opencode-ai"
+    become: false
+  - name: junie
+    check_cmd: "command -v junie"
+    install_cmd: "curl -fsSL https://junie.jetbrains.com/install.sh | bash"
+    become: false
+  - name: copilot
+    check_cmd: "gh copilot --version 2>/dev/null"
+    install_cmd: "gh extension install github/gh-copilot"
+    become: false
   - name: neovim
     check_cmd: "command -v nvim"
     install_cmd: "sudo apt-get install -y neovim"
