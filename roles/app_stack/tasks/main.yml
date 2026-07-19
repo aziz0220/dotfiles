@@ -237,7 +237,10 @@
 - name: Install Node runtimes with nvm
   ansible.builtin.shell: |
     set -e
-    . "{{ user_home }}/.nvm/nvm.sh"
+    export HOME="{{ user_home }}"
+    export NVM_DIR="{{ user_home }}/.nvm"
+    export NVM_NO_TEST=1
+    . "$NVM_DIR/nvm.sh"
     nvm install "{{ item }}"
   args:
     executable: /bin/bash
@@ -248,6 +251,9 @@
 - name: Set default Node runtime
   ansible.builtin.shell: |
     set -e
+    export HOME="{{ user_home }}"
+    export NVM_DIR="{{ user_home }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
     . "{{ user_home }}/.nvm/nvm.sh"
     nvm alias default "{{ node_versions[0] }}"
   args:
@@ -258,7 +264,9 @@
 - name: Install global npm CLI tools
   ansible.builtin.shell: |
     set -e
-    . "{{ user_home }}/.nvm/nvm.sh"
+    export HOME="{{ user_home }}"
+    export NVM_DIR="{{ user_home }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
     nvm use default >/dev/null
     npm install -g "{{ item }}"
   args:

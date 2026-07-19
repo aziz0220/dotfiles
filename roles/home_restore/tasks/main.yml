@@ -9,6 +9,10 @@
     gid: "{{ item.gid }}"
     state: present
   loop: "{{ user_groups }}"
+  register: _group_results
+  failed_when:
+    - _group_results is failed
+    - '"already exists" not in _group_results.msg | default("")'
 
 - name: Ensure primary user group exists
   ansible.builtin.group:
@@ -50,13 +54,11 @@
   when: not bootstrap_home_tree.stat.exists
 
 - name: Copy bootstrap home tree to target home
-  ansible.builtin.copy:
-    src: "{{ bootstrap_home_dir }}/"
-    dest: "{{ user_home }}/"
-    remote_src: true
-    owner: "{{ user_name }}"
-    group: "{{ user_name }}"
+  ansible.builtin.command:
+    cmd: rsync -a --no-owner --no-group --exclude=.nvm --exclude=.cache {{ bootstrap_home_dir | quote }}/ {{ user_home | quote }}/
+    creates: "{{ user_home }}/.bashrc"
   when: bootstrap_home_tree.stat.exists
+  become_user: "{{ user_name }}"
 
 - name: Restore SSH strict permissions
   ansible.builtin.stat:
