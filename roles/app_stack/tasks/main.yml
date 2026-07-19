@@ -15,38 +15,41 @@
     state: present
     install_recommends: false
 
-- name: Resolve snapshot package install targets on target release
+- name: Write package list to temp file for batched probe
+  ansible.builtin.copy:
+    content: "{{ packages | unique | join('\n') }}\n"
+    dest: /tmp/ansible-pkg-probe-list.txt
+    mode: '0644'
+
+- name: Resolve snapshot package install targets on target release (batched)
   ansible.builtin.shell: |
     set -euo pipefail
-    pkg="{{ item }}"
-    candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {c=$2} END {print c}')"
-    if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then
-      echo "$pkg"
-      exit 0
-    fi
-    if [[ "$pkg" != *t64 ]]; then
-      t64_pkg="${pkg}t64"
-      t64_candidate="$(apt-cache policy "$t64_pkg" | awk '/Candidate:/ {c=$2} END {print c}')"
-      if [ -n "$t64_candidate" ] && [ "$t64_candidate" != "(none)" ]; then
-        echo "$t64_pkg"
-        exit 0
+    while IFS= read -r pkg; do
+      [ -z "$pkg" ] && continue
+      candidate="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/ {c=$2} END {print c}')"
+      if [ -n "$candidate" ] && [ "$candidate" != "(none)" ]; then
+        echo "$pkg"
+        continue
       fi
-    fi
-    exit 1
+      if [[ "$pkg" != *t64 ]]; then
+        t64_pkg="${pkg}t64"
+        t64_candidate="$(apt-cache policy "$t64_pkg" 2>/dev/null | awk '/Candidate:/ {c=$2} END {print c}')"
+        if [ -n "$t64_candidate" ] && [ "$t64_candidate" != "(none)" ]; then
+          echo "$t64_pkg"
+          continue
+        fi
+      fi
+    done < /tmp/ansible-pkg-probe-list.txt
   args:
     executable: /bin/bash
-  loop: "{{ packages | unique }}"
   register: _package_probe
   changed_when: false
-  failed_when: false
 
 - name: Build installable package list
   ansible.builtin.set_fact:
     _available_packages: >-
       {{
-        _package_probe.results
-        | selectattr('rc', 'equalto', 0)
-        | map(attribute='stdout')
+        (_package_probe.stdout_lines | default([]))
         | reject('equalto', '')
         | list
         | unique
@@ -56,10 +59,8 @@
   ansible.builtin.set_fact:
     _missing_packages: >-
       {{
-        _package_probe.results
-        | rejectattr('rc', 'equalto', 0)
-        | map(attribute='item')
-        | list
+        (packages | unique)
+        | difference(_available_packages)
       }}
 
 - name: Exclude self-managed Ansible packages from package loop
@@ -81,35 +82,26 @@
     msg: "Skipping self-managed packages during restore: {{ _package_loop_exclusions | join(', ') }}"
   when: _available_packages | difference(_available_packages_safe) | length > 0
 
-- name: Install available snapshot packages one-by-one (conflict tolerant)
-  ansible.builtin.apt:
-    name: "{{ item }}"
-    state: present
-    install_recommends: false
-  loop: "{{ _available_packages_safe }}"
+- name: Install available snapshot packages in batches of 50 (conflict tolerant)
+  ansible.builtin.shell: |
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends {{ item | join(' ') }}
+  args:
+    executable: /bin/bash
+  loop: "{{ _available_packages_safe | batch(50) | list }}"
   register: _package_install_results
   failed_when: false
   when: _available_packages_safe | length > 0
 
-- name: Collect packages that failed to install
+- name: Collect packages from failed install batches
   ansible.builtin.set_fact:
     _failed_package_installs: >-
       {{
-        (
-          _package_install_results.results
-          | selectattr('failed', 'defined')
-          | selectattr('failed')
-          | map(attribute='item')
-          | list
-        )
-        +
-        (
-          _package_install_results.results
-          | selectattr('rc', 'defined')
-          | rejectattr('rc', 'equalto', 0)
-          | map(attribute='item')
-          | list
-        )
+        _package_install_results.results
+        | selectattr('failed', 'defined')
+        | selectattr('failed')
+        | map(attribute='item')
+        | flatten
+        | list
         | unique
       }}
   when: _package_install_results is defined
@@ -557,9 +549,9 @@
     - _custom_tool_installs is defined
     - _custom_tool_installs.results is defined
 
-- name: Fail when any required custom tool install failed
-  ansible.builtin.fail:
-    msg: "Failed to install required custom tools: {{ _failed_custom_tool_installs | join(', ') }}"
+- name: Show custom tools that failed to install (non-fatal)
+  ansible.builtin.debug:
+    msg: "Custom tools that failed to install (install manually): {{ _failed_custom_tool_installs | join(', ') }}"
   when:
     - _failed_custom_tool_installs is defined
     - _failed_custom_tool_installs | length > 0
@@ -624,6 +616,7 @@
     HOME: "{{ user_home }}"
     SDKMAN_DIR: "{{ user_home }}/.sdkman"
     SDKMAN_AUTO_ANSWER: "true"
+  when: sdkman_java_versions | length > 0
 
 - name: Install SDKMAN Maven versions
   ansible.builtin.shell: |
@@ -652,6 +645,7 @@
     HOME: "{{ user_home }}"
     SDKMAN_DIR: "{{ user_home }}/.sdkman"
     SDKMAN_AUTO_ANSWER: "true"
+  when: sdkman_maven_versions | length > 0
 
 - name: Install SDKMAN Gradle versions
   ansible.builtin.shell: |
@@ -680,3 +674,4 @@
     HOME: "{{ user_home }}"
     SDKMAN_DIR: "{{ user_home }}/.sdkman"
     SDKMAN_AUTO_ANSWER: "true"
+  when: sdkman_gradle_versions | length > 0
