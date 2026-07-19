@@ -30,13 +30,6 @@ jobs:
           echo "test" | sudo tee .bootstrap/home/.zshrc
           echo "test" | sudo tee .bootstrap/home/.gitconfig
           sudo chown -R testuser:testuser .bootstrap/home/
-      - name: Decrypt vault
-        if: ${{ secrets.SETUP_SECRETS_PASSWORD != '' }}
-        env:
-          SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
-        run: |
-          rm -rf .bootstrap/home
-          bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
       - name: Ansible dry-check
         run: >
           sudo -u testuser ansible-playbook local.yml --check
