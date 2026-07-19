@@ -1,22 +1,25 @@
 <div align="center">
-  <h1>Ubuntu Setup</h1>
-  <p><strong>Declarative, portable workstation bootstrap — one command, any machine</strong></p>
+  <h1>Dotfiles</h1>
+  <p><strong>One command to restore your entire development environment — dotfiles, secrets, packages, tools, and repos.</strong></p>
 
   <p>
-    <a href="https://github.com/aziz0220/ubuntu-setup/actions/workflows/ci.yml">
-      <img src="https://github.com/aziz0220/ubuntu-setup/actions/workflows/ci.yml/badge.svg" alt="CI">
+    <a href="https://github.com/aziz0220/dotfiles/actions/workflows/ci.yml">
+      <img src="https://github.com/aziz0220/dotfiles/actions/workflows/ci.yml/badge.svg" alt="CI">
     </a>
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
     </a>
-    <a href="https://github.com/aziz0220/ubuntu-setup">
+    <a href="https://github.com/aziz0220/dotfiles">
       <img src="https://img.shields.io/badge/ansible-11.0%2B-orange.svg" alt="Ansible">
     </a>
-    <a href="https://github.com/aziz0220/ubuntu-setup">
+    <a href="https://github.com/aziz0220/dotfiles">
       <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
     </a>
-    <a href="https://github.com/aziz0220/ubuntu-setup">
+    <a href="https://github.com/aziz0220/dotfiles">
       <img src="https://img.shields.io/badge/maintained-yes-green.svg" alt="Maintenance">
+    </a>
+    <a href="https://github.com/aziz0220/dotfiles">
+      <img src="https://img.shields.io/github/stars/aziz0220/dotfiles?style=social" alt="Stars">
     </a>
   </p>
 </div>
@@ -27,14 +30,14 @@ Provision any Ubuntu machine — WSL2, cloud VM, bare metal, or VM — with your
 
 ## Features
 
-- **One-command bootstrap** — `curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install | bash`
+- **One-command bootstrap** — `curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install | bash`
 - **Encrypted secrets** — SSH keys, GPG keys, AWS credentials, kube config stored in AES-256-CBC + PBKDF2 vault
 - **Declarative machine state** — packages, snaps, npm/pipx/cargo/gem packages, repos, runtimes all captured as version-controlled YAML
 - **Idempotent** — safe to run multiple times; only installs what's missing
 - **Tagged execution** — run only what you need: `./ansible-run dotfiles`, `./ansible-run node`, etc.
 - **Auto-detecting** — detects username, home, UID/GID, shell at runtime
-- **Cross-distro compatible** — `t64` package name fallbacks for Ubuntu 22.04 ↔ 24.04 transitions
-- **CI-verified** — every commit runs lint, validation, secret scan, and full provision in CI
+- **Cross-distro compatible** — tested on Ubuntu 22.04 and 24.04 in CI
+- **CI-verified** — every commit runs lint, validation, secret scan, and full provision on both LTS releases
 - **Portable** — works on WSL2, cloud VMs (AWS, GCP, Azure), bare metal, VMware/VirtualBox
 
 ## Quick Start
@@ -47,7 +50,7 @@ Provision any Ubuntu machine — WSL2, cloud VM, bare metal, or VM — with your
 ### One-command setup
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install)
+bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install)
 ```
 
 The script will:
@@ -70,14 +73,14 @@ cat ~/.ssh/github_setup.pub
 export GITHUB_TOKEN=ghp_...
 
 # Then run the installer
-bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install)
+bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install)
 ```
 
 ### Manual setup
 
 ```bash
-git clone https://github.com/aziz0220/ubuntu-setup.git
-cd ubuntu-setup
+git clone https://github.com/aziz0220/dotfiles.git
+cd dotfiles
 export SETUP_SECRETS_PASSWORD='your-vault-password'
 ./ansible-run
 ```
@@ -134,7 +137,7 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    ubuntu-setup                          │
+│                      dotfiles                            │
 │                                                          │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐ │
 │  │  install      │   │  ansible-run │   │  Makefile     │ │
@@ -190,12 +193,15 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 ```
 .
 ├── install                 # One-command bootstrap entry point
+├── bin/dotfiles            # Workstation bootstrap runner
 ├── ansible-run             # Playbook orchestrator
 ├── Makefile                # Common development tasks
+├── justfile                # Modern task runner (macOS/Linux)
 ├── local.yml               # Main playbook
 ├── site.yml                # Site-wide playbook (multi-host)
 ├── inventory.ini           # Ansible inventory (localhost)
 ├── ansible.cfg             # Ansible configuration
+├── AGENTS.md               # AI-assisted development guide
 │
 ├── roles/
 │   ├── system_setup/       # System-level configuration
@@ -243,41 +249,19 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 │   └── validate_setup.sh              # Post-provision validation
 │
 ├── test/
-│   └── docker_test.sh                 # Docker-based provision test
+│   ├── docker_test.sh                 # Docker-based provision test
+│   └── Dockerfile                     # (generated at runtime)
 │
-├── requirements.yml                   # Ansible Galaxy dependencies
-├── justfile                           # Modern task runner (macOS/Linux)
 ├── .editorconfig                      # Editor consistency
 ├── .pre-commit-config.yaml            # Pre-commit hook definitions
+├── .ansible-lint                      # Ansible-lint configuration
+├── .yamllint                          # YAMLlint configuration
 │
 └── .github/
     ├── workflows/ci.yml               # CI pipeline (multi-distro: 22.04 + 24.04)
     ├── dependabot.yml
     ├── ISSUE_TEMPLATE/
     └── PULL_REQUEST_TEMPLATE.md
-```
-
-## Configuration Reference
-
-### Environment Variables
-
-### Using `just` instead of `make`
-
-If you prefer a modern task runner, a `justfile` is provided:
-
-```bash
-# Install just (one time)
-cargo install just
-
-# List available tasks
-just
-
-# Run tasks
-just lint
-just validate
-just check
-just provision
-just docker-test 22.04
 ```
 
 ## Configuration Reference
@@ -346,12 +330,6 @@ make ci          # Run the same checks as GitHub Actions
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit changes: `git commit -am 'Add feature'`
-4. Push: `git push origin feature/my-feature`
-5. Open a pull request
 
 ## Security
 

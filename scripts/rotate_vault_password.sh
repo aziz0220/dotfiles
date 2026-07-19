@@ -99,5 +99,5 @@ fi
 log "Vault password rotated successfully"
 echo
 echo "IMPORTANT: Update your GitHub secret:"
-echo "  echo 'your-new-password' | gh secret set SETUP_SECRETS_PASSWORD --repo aziz0220/ubuntu-setup --body @-"
+echo "  echo 'your-new-password' | gh secret set SETUP_SECRETS_PASSWORD --repo aziz0220/dotfiles --body @-"
 echo

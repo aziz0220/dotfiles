@@ -6,7 +6,7 @@ If you discover a security vulnerability in this project, please report it priva
 
 **Do not open a public GitHub issue.** Instead, email the maintainer directly or open a draft security advisory at:
 
-https://github.com/aziz0220/ubuntu-setup/security/advisories/new
+https://github.com/aziz0220/dotfiles/security/advisories/new
 
 You should receive a response within 48 hours. If not, follow up to ensure receipt.
 

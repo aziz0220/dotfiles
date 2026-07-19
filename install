@@ -1,23 +1,53 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# ubuntu-setup — One-command workstation bootstrap
+# dotfiles — One-command workstation bootstrap
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install)
+#   bash <(curl -fsSL .../install) --version
+#   bash <(curl -fsSL .../install) --uninstall
 #
 # Environment:
 #   SETUP_SECRETS_PASSWORD    Vault passphrase (prompted if unset)
 #   GITHUB_TOKEN              GitHub personal access token (for private repos)
-#   INSTALL_DIR               Target directory (default: ~/ubuntu-setup)
+#   INSTALL_DIR               Target directory (default: ~/dotfiles)
 #   ANSIBLE_TAGS              Comma-separated tags (default: all)
 #   SKIP_VAULT                Set to 1 to skip vault decryption
 #   DEBUG                     Set to 1 for verbose output
 # ---------------------------------------------------------------------------
 set -euo pipefail
+
+VERSION="0.2.0"
+
+usage() {
+  sed -n 's/^# \{0,1\}//p' "$0" | sed 's/^ *$//' | grep -A999 '^ Usage' | head -20
+  exit 0
+}
+
+case "${1:-}" in
+  --version|-v)
+    echo "dotfiles $VERSION"
+    exit 0
+    ;;
+  --help|-h)
+    usage
+    ;;
+  --uninstall)
+    if [ -d "$HOME/dotfiles" ]; then
+      echo "Removing $HOME/dotfiles..."
+      rm -rf "$HOME/dotfiles"
+      echo "Removed dotfiles. Your home directory and configs are untouched."
+    else
+      echo "dotfiles not found at $HOME/dotfiles. Nothing to remove."
+    fi
+    exit 0
+    ;;
+esac
+
 # shellcheck disable=SC1091
 
-REPO_URL="https://github.com/aziz0220/ubuntu-setup.git"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/ubuntu-setup}"
+REPO_URL="https://github.com/aziz0220/dotfiles.git"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/dotfiles}"
 ANSIBLE_TAGS="${ANSIBLE_TAGS:-all}"
 
 # ---- Colors ---------------------------------------------------------------
@@ -106,14 +136,14 @@ if [ -d "$INSTALL_DIR/.git" ]; then
   info "Updating existing clone at $INSTALL_DIR"
   cd "$INSTALL_DIR"
   if [ -n "${GITHUB_TOKEN:-}" ]; then
-    git remote set-url origin "https://${GITHUB_TOKEN}@github.com/aziz0220/ubuntu-setup.git"
+    git remote set-url origin "https://${GITHUB_TOKEN}@github.com/aziz0220/dotfiles.git"
   fi
   git pull --ff-only
   log "Repository updated"
 else
   info "Cloning into $INSTALL_DIR"
   if [ -n "${GITHUB_TOKEN:-}" ]; then
-    git clone "https://${GITHUB_TOKEN}@github.com/aziz0220/ubuntu-setup.git" "$INSTALL_DIR"
+    git clone "https://${GITHUB_TOKEN}@github.com/aziz0220/dotfiles.git" "$INSTALL_DIR"
   else
     git clone "$REPO_URL" "$INSTALL_DIR"
   fi

@@ -14,7 +14,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 UBUNTU_VERSION="${1:-24.04}"
-CONTAINER_NAME="ubuntu-setup-test-$(date +%s)"
+CONTAINER_NAME="dotfiles-test-$(date +%s)"
 PLAYBOOK="${ANSIBLE_PLAYBOOK_FILE:-local.yml}"
 
 # Colors
@@ -88,7 +88,7 @@ RUN mkdir -p /setup/.bootstrap/home/.ssh && \
 DOCKERFILE
 
 info "Building Docker image for Ubuntu ${UBUNTU_VERSION}..."
-docker build -t "ubuntu-setup-test:${UBUNTU_VERSION}" -f "$TEST_DIR/Dockerfile" "$REPO_DIR"
+docker build -t "dotfiles-test:${UBUNTU_VERSION}" -f "$TEST_DIR/Dockerfile" "$REPO_DIR"
 log "Image built"
 
 # ---- Run provisioning ----
@@ -97,7 +97,7 @@ header "Running playbook"
 docker run --name "$CONTAINER_NAME" \
   -e "HOME=/home/testuser" \
   -e "CI=true" \
-  "ubuntu-setup-test:${UBUNTU_VERSION}" \
+  "dotfiles-test:${UBUNTU_VERSION}" \
   bash -c "
     set -e
     ansible-playbook ${PLAYBOOK} \
@@ -115,7 +115,7 @@ header "Verifying installation"
 
 docker run --name "${CONTAINER_NAME}-verify" \
   -e "HOME=/home/testuser" \
-  "ubuntu-setup-test:${UBUNTU_VERSION}" \
+  "dotfiles-test:${UBUNTU_VERSION}" \
   bash -c "
     set -x
     echo '=== System ==='
@@ -138,5 +138,5 @@ docker rm "${CONTAINER_NAME}-verify" 2>/dev/null || true
 header "Results"
 log "Ubuntu ${UBUNTU_VERSION} test completed"
 info "To test interactively:"
-info "  docker run -it --rm ubuntu-setup-test:${UBUNTU_VERSION} bash"
+info "  docker run -it --rm dotfiles-test:${UBUNTU_VERSION} bash"
 echo

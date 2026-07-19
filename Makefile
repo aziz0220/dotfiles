@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# ubuntu-setup — Development tasks
+# dotfiles — Development tasks
 # ---------------------------------------------------------------------------
 .PHONY: help setup lint validate check ci install provision clean \
         docker-test pre-commit setup-precommit vault-rotate
@@ -16,7 +16,7 @@ setup: ## Install development dependencies
 
 lint: ## Run all linters
 	@echo "→ YAML lint"; yamllint --strict .
-	@echo "→ Shellcheck"; shellcheck scripts/*.sh install ansible-run
+	@echo "→ Shellcheck"; shellcheck scripts/*.sh install ansible-run bin/dotfiles
 	@echo "→ Ansible syntax check"; ansible-playbook --syntax-check -i inventory.ini local.yml
 	@echo "→ Ansible lint"; ansible-lint local.yml || true
 	@echo "✓ All lints passed"
@@ -31,7 +31,7 @@ validate: ## Validate repo structure and data
 	done; \
 	exit $$errors
 	@echo "→ Required files"; \
-	for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install Makefile; do \
+	for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install Makefile bin/dotfiles; do \
 		test -f "$$f" && echo "  OK: $$f" || { echo "  MISSING: $$f"; exit 1; }; \
 	done; \
 	for role in system_setup home_restore app_stack; do \

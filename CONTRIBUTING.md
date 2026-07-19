@@ -6,7 +6,7 @@ Thanks for your interest in contributing! This project aims to be a rock-solid, 
 
 ### Reporting Bugs
 
-1. Check if the bug has already been reported in [Issues](https://github.com/aziz0220/ubuntu-setup/issues)
+1. Check if the bug has already been reported in [Issues](https://github.com/aziz0220/dotfiles/issues)
 2. If not, open a new issue with:
    - A clear title and description
    - Steps to reproduce
@@ -42,8 +42,8 @@ Open an issue with the `enhancement` label describing:
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/ubuntu-setup.git
-cd ubuntu-setup
+git clone https://github.com/YOUR_USERNAME/dotfiles.git
+cd dotfiles
 
 # Install dev dependencies
 make setup
@@ -53,6 +53,18 @@ make setup-precommit
 
 # Run checks
 make check
+```
+
+### Using bin/dotfiles
+
+After cloning, use the `bin/dotfiles` entry point for common operations:
+
+```bash
+./bin/dotfiles            # Provision everything
+./bin/dotfiles dotfiles   # Only dotfiles tag
+./bin/dotfiles --check    # Validate setup
+./bin/dotfiles --lint     # Run linters
+./bin/dotfiles --version  # Show version
 ```
 
 ## Code Style
@@ -116,7 +128,7 @@ bash scripts/rotate_vault_password.sh
 
 Then update the GitHub secret:
 ```bash
-echo 'your-new-password' | gh secret set SETUP_SECRETS_PASSWORD --repo YOUR_USERNAME/ubuntu-setup --body @-
+echo 'your-new-password' | gh secret set SETUP_SECRETS_PASSWORD --repo YOUR_USERNAME/dotfiles --body @-
 ```
 
 ## Security
@@ -125,4 +137,4 @@ See [SECURITY.md](SECURITY.md).
 
 ## Questions?
 
-Open a [Discussion](https://github.com/aziz0220/ubuntu-setup/discussions) or ask in a PR comment.
+Open a [Discussion](https://github.com/aziz0220/dotfiles/discussions) or ask in a PR comment.

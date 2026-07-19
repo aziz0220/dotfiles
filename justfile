@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# ubuntu-setup — Modern task runner (https://github.com/casey/just)
+# dotfiles — Modern task runner (https://github.com/casey/just)
 # ---------------------------------------------------------------------------
 set positional-arguments := true
 
@@ -18,7 +18,7 @@ setup:
 lint:
     #!/usr/bin/env bash
     echo "→ YAML lint"; yamllint --strict .
-    echo "→ Shellcheck"; shellcheck scripts/*.sh install ansible-run
+    echo "→ Shellcheck"; shellcheck scripts/*.sh install ansible-run bin/dotfiles
     echo "→ Ansible syntax check"; ansible-playbook --syntax-check -i inventory.ini local.yml
     echo "→ Ansible lint"; ansible-lint local.yml || true
     echo "✓ All lints passed"

@@ -37,7 +37,7 @@ jobs:
         run: yamllint --strict .
 
       - name: Shellcheck
-        run: shellcheck scripts/*.sh install ansible-run
+        run: shellcheck scripts/*.sh install ansible-run bin/dotfiles
 
       - name: Ansible syntax check
         run: ansible-playbook --syntax-check -i inventory.ini local.yml
@@ -63,7 +63,7 @@ jobs:
 
       - name: Check required files
         run: |
-          for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install Makefile; do
+          for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install Makefile bin/dotfiles; do
             test -f "$f" && echo "OK: $f" || { echo "MISSING: $f"; exit 1; }
           done
           for role in system_setup home_restore app_stack; do

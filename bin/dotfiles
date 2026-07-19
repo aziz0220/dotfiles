@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# bin/dotfiles — Dotfiles workstation bootstrap runner
+#
+# A human-friendly CLI for provisioning, validating, and managing your
+# development environment.
+#
+# Usage:
+#   dotfiles                  # Provision everything (default: all tags)
+#   dotfiles <tag>            # Provision specific tag (dotfiles, node, core, ssh)
+#   dotfiles --check          # Run validation checks
+#   dotfiles --lint           # Run all linters
+#   dotfiles --help           # Show this help
+#   dotfiles --version        # Show version
+#   dotfiles --uninstall      # Remove cloned repo (caution)
+# ---------------------------------------------------------------------------
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+VERSION="0.2.0"
+
+usage() {
+  sed -n 's/^# \{0,1\}//p' "$0" | sed 's/^ *$//' | tail -n +3
+  exit 0
+}
+
+case "${1:-}" in
+  --help|-h)
+    usage
+    ;;
+  --version|-v)
+    echo "dotfiles $VERSION"
+    exit 0
+    ;;
+  --check)
+    shift
+    cd "$REPO_DIR" && bash scripts/validate_setup.sh
+    ;;
+  --lint)
+    shift
+    cd "$REPO_DIR" && make lint
+    ;;
+  --uninstall)
+    echo "This will remove $REPO_DIR and all its contents."
+    read -r -p "Are you sure? [y/N] " confirm
+    if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+      rm -rf "$REPO_DIR"
+      echo "Removed $REPO_DIR"
+    else
+      echo "Cancelled."
+    fi
+    exit 0
+    ;;
+  *)
+    cd "$REPO_DIR" && bash ansible-run "${1:-all}"
+    ;;
+esac
