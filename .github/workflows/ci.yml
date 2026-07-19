@@ -21,7 +21,7 @@ jobs:
           sudo apt-get install -y ansible git curl tar unzip ca-certificates
       - name: Create test user
         run: |
-          sudo useradd -m -s /bin/bash -u 1000 testuser
+          sudo useradd -m -s /bin/bash -u 2000 testuser
           echo 'testuser ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/testuser
       - name: Create minimal bootstrap home
         run: |
@@ -30,14 +30,21 @@ jobs:
           echo "test" | sudo tee .bootstrap/home/.zshrc
           echo "test" | sudo tee .bootstrap/home/.gitconfig
           sudo chown -R testuser:testuser .bootstrap/home/
+      - name: Decrypt vault for full test
+        if: ${{ secrets.SETUP_SECRETS_PASSWORD != '' }}
+        env:
+          SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
+        run: |
+          rm -rf .bootstrap/home
+          bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
       - name: Ansible dry-check
         run: >
           sudo -u testuser ansible-playbook local.yml --check
           -i inventory.ini
           -e "user_name=testuser"
           -e "user_home=/home/testuser"
-          -e "user_uid=1000"
-          -e "user_gid=1000"
+          -e "user_uid=2000"
+          -e "user_gid=2000"
           -e "user_shell=/bin/bash"
           --tags core,software
       - name: Install packages
@@ -46,8 +53,8 @@ jobs:
           -i inventory.ini
           -e "user_name=testuser"
           -e "user_home=/home/testuser"
-          -e "user_uid=1000"
-          -e "user_gid=1000"
+          -e "user_uid=2000"
+          -e "user_gid=2000"
           -e "user_shell=/bin/bash"
           --tags software
       - name: Verify
