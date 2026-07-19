@@ -87,7 +87,7 @@ jobs:
       - name: Check for tracked credentials
         run: |
           errors=0
-          for pattern in '*id_rsa*' '*id_ed25519*' '*.pem' '*credentials*; do
+          for pattern in '*id_rsa*' '*id_ed25519*' '*.pem' '*credentials*'; do
             for f in $(git ls-files -- "$pattern" 2>/dev/null); do
               echo "WARNING: Potential credential: $f"
               errors=$((errors+1))
