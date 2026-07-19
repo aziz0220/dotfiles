@@ -14,8 +14,6 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENCRYPTED_BUNDLE="${ENCRYPTED_BUNDLE:-$REPO_DIR/vault/home-secrets.tar.gz.aes256}"
-DECRYPT_SCRIPT="$REPO_DIR/scripts/decrypt_home_bundle.sh"
-ENCRYPT_SCRIPT="$REPO_DIR/scripts/encrypt_home_bundle.sh"
 
 # Colors
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
