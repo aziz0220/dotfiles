@@ -32,11 +32,11 @@ jobs:
           sudo chown -R testuser:testuser .bootstrap/home/
       - name: Decrypt vault for full test
         run: |
-          if [ -n "$SETUP_SECRETS_PASSWORD" ]; then
-            rm -rf .bootstrap/home
+          if [ -n "$SETUP_SECRETS_PASSWORD" ] && [ -f scripts/decrypt_home_bundle.sh ]; then
+            sudo rm -rf .bootstrap/home
             bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
           else
-            echo "SETUP_SECRETS_PASSWORD not set, skipping decrypt"
+            echo "Secret not set or decrypt script not found, using minimal bootstrap"
           fi
         env:
           SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
