@@ -48,6 +48,9 @@ cd ubuntu-setup
 # Install dev dependencies
 make setup
 
+# (Optional) Install pre-commit hooks for automatic linting
+make setup-precommit
+
 # Run checks
 make check
 ```
@@ -87,6 +90,33 @@ vars/                    # Declarative machine state
 ├── groups.yml               # System groups
 ├── system-locale.yml        # Locale/timezone
 └── user-profile.yml         # User metadata
+```
+
+## Testing with Docker
+
+Test provisioning against a clean Ubuntu container locally:
+
+```bash
+# Test Ubuntu 24.04 (default)
+make docker-test
+
+# Test Ubuntu 22.04
+make docker-test DISTRO=22.04
+```
+
+This builds a Docker image, runs the full playbook, and verifies installed components — same as CI but on your machine.
+
+## Vault Password Rotation
+
+If you need to change the vault password:
+
+```bash
+bash scripts/rotate_vault_password.sh
+```
+
+Then update the GitHub secret:
+```bash
+echo 'your-new-password' | gh secret set SETUP_SECRETS_PASSWORD --repo YOUR_USERNAME/ubuntu-setup --body @-
 ```
 
 ## Security

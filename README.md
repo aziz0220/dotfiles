@@ -239,12 +239,45 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 │   ├── capture_software_inventory.sh  # Capture package state
 │   ├── decrypt_home_bundle.sh         # Decrypt secrets vault
 │   ├── encrypt_home_bundle.sh         # Encrypt secrets vault
+│   ├── rotate_vault_password.sh       # Change vault password
 │   └── validate_setup.sh              # Post-provision validation
 │
+├── test/
+│   └── docker_test.sh                 # Docker-based provision test
+│
+├── requirements.yml                   # Ansible Galaxy dependencies
+├── justfile                           # Modern task runner (macOS/Linux)
+├── .editorconfig                      # Editor consistency
+├── .pre-commit-config.yaml            # Pre-commit hook definitions
+│
 └── .github/
-    ├── workflows/ci.yml
+    ├── workflows/ci.yml               # CI pipeline (multi-distro: 22.04 + 24.04)
     ├── dependabot.yml
-    └── ...
+    ├── ISSUE_TEMPLATE/
+    └── PULL_REQUEST_TEMPLATE.md
+```
+
+## Configuration Reference
+
+### Environment Variables
+
+### Using `just` instead of `make`
+
+If you prefer a modern task runner, a `justfile` is provided:
+
+```bash
+# Install just (one time)
+cargo install just
+
+# List available tasks
+just
+
+# Run tasks
+just lint
+just validate
+just check
+just provision
+just docker-test 22.04
 ```
 
 ## Configuration Reference
@@ -258,6 +291,8 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 | `ENCRYPTED_HOME_BUNDLE` | No | Override vault file path |
 | `ANSIBLE_PLAYBOOK_FILE` | No | Override playbook file (default: `local.yml`) |
 | `GITHUB_TOKEN` | For GH auth | GitHub personal access token |
+| `OLDPASS` | Vault rotation | Current vault password (when using `rotate_vault_password.sh`) |
+| `NEWPASS` | Vault rotation | New vault password (when using `rotate_vault_password.sh`) |
 
 ### Tags
 
@@ -276,6 +311,22 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 
 ```bash
 make setup
+make setup-precommit   # optional: automatic linting on commit
+```
+
+### Test provisioning locally with Docker
+
+```bash
+make docker-test              # Ubuntu 24.04
+make docker-test DISTRO=22.04 # Ubuntu 22.04
+```
+
+This builds a clean container, runs the full playbook, and verifies components — the same way CI does.
+
+### Rotate vault password
+
+```bash
+bash scripts/rotate_vault_password.sh
 ```
 
 ### Lint and validate
@@ -310,6 +361,8 @@ See [SECURITY.md](SECURITY.md) for the security policy.
 - The bootstrap home directory (`.bootstrap/home/`) is gitignored
 - Only the encrypted vault (`vault/home-secrets.tar.gz.aes256`) is committed
 - Vault uses AES-256-CBC with PBKDF2 key derivation
+- Rotate the vault password at any time: `bash scripts/rotate_vault_password.sh`
+- CI tests provisioning against **both Ubuntu 22.04 and 24.04** for cross-release compatibility
 
 ## License
 

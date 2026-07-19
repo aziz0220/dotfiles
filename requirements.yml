@@ -1,0 +1,9 @@
+---
+collections:
+  - name: ansible.builtin
+
+# No external roles or collections are required.
+# All roles are local (roles/system_setup, roles/app_stack, roles/home_restore).
+#
+# To install from Ansible Galaxy if needed in the future:
+#   ansible-galaxy install -r requirements.yml
