@@ -45,9 +45,7 @@ jobs:
         run: |
           errors=0
           for f in vars/*.yml; do
-            python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null || {
-              echo "INVALID: $f"; errors=$((errors+1)); continue
-            }
+            python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null || { echo "INVALID: $f"; errors=$((errors+1)); continue; }
             echo "OK: $f"
           done
           exit $errors
@@ -58,21 +56,20 @@ jobs:
             test -f "$f" && echo "OK: $f" || { echo "MISSING: $f"; exit 1; }
           done
           for role in system_setup home_restore app_stack; do
-            test -f "roles/$role/tasks/main.yml" && echo "OK: roles/$role/tasks/main.yml" \
-              || { echo "MISSING: roles/$role/tasks/main.yml"; exit 1; }
+            test -f "roles/$role/tasks/main.yml" && echo "OK: roles/$role/tasks/main.yml" || { echo "MISSING: roles/$role/tasks/main.yml"; exit 1; }
           done
 
       - name: Bootstrap home is gitignored
         run: |
           if git ls-files --error-unmatch .bootstrap/home/ 2>/dev/null; then
-            echo "FAIL: .bootstrap/home/ is tracked by git!"; exit 1
+            echo "FAIL: .bootstrap/home/ is tracked by git!"
+            exit 1
           fi
           echo "OK: .bootstrap/home/ is properly gitignored"
 
       - name: Vault is AES256 encrypted
         run: |
-          file vault/home-secrets.tar.gz.aes256 | grep -q 'data' && echo "OK: vault present" \
-            || { echo "MISSING or invalid: vault/home-secrets.tar.gz.aes256"; exit 1; }
+          file vault/home-secrets.tar.gz.aes256 | grep -q 'data' && echo "OK: vault present" || { echo "MISSING or invalid: vault/home-secrets.tar.gz.aes256"; exit 1; }
 
   security:
     name: Secret scan
@@ -87,7 +84,8 @@ jobs:
           errors=0
           for pattern in '*id_rsa*' '*id_ed25519*' '*.pem' '*credentials*' '*secret*' '*.key'; do
             for f in $(git ls-files -- "$pattern" 2>/dev/null); do
-              echo "WARNING: Potential credential: $f"; errors=$((errors+1))
+              echo "WARNING: Potential credential: $f"
+              errors=$((errors+1))
             done
           done
           exit $errors
@@ -121,7 +119,7 @@ jobs:
           echo "test" | sudo tee .bootstrap/home/.gitconfig
           sudo chown -R testuser:testuser .bootstrap/home/
 
-      - name: Decrypt vault for full test (if secret available)
+      - name: Decrypt vault for full test
         if: ${{ secrets.SETUP_SECRETS_PASSWORD != '' }}
         env:
           SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
@@ -129,37 +127,33 @@ jobs:
           rm -rf .bootstrap/home
           bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
 
-      - name: Run ansible-playbook dry check (core + software)
-        run: |
-          sudo -u testuser ansible-playbook local.yml --check \
-            -i inventory.ini \
-            -e "user_name=testuser" \
-            -e "user_home=/home/testuser" \
-            -e "user_uid=1000" \
-            -e "user_gid=1000" \
-            -e "user_shell=/bin/bash" \
-            --tags core,software 2>&1 | tail -20
+      - name: Ansible dry-check
+        run: >
+          sudo -u testuser ansible-playbook local.yml --check
+          -i inventory.ini
+          -e "user_name=testuser"
+          -e "user_home=/home/testuser"
+          -e "user_uid=1000"
+          -e "user_gid=1000"
+          -e "user_shell=/bin/bash"
+          --tags core,software
 
-      - name: Run package install (real, not dry-run)
-        run: |
-          sudo -u testuser ansible-playbook local.yml \
-            -i inventory.ini \
-            -e "user_name=testuser" \
-            -e "user_home=/home/testuser" \
-            -e "user_uid=1000" \
-            -e "user_gid=1000" \
-            -e "user_shell=/bin/bash" \
-            --tags software 2>&1 | tail -30
+      - name: Install software packages
+        run: >
+          sudo -u testuser ansible-playbook local.yml
+          -i inventory.ini
+          -e "user_name=testuser"
+          -e "user_home=/home/testuser"
+          -e "user_uid=1000"
+          -e "user_gid=1000"
+          -e "user_shell=/bin/bash"
+          --tags software
 
       - name: Verify installed components
         run: |
-          echo "=== Node ==="
-          sudo -u testuser bash -c 'source ~/.nvm/nvm.sh && node --version' || echo "NVM not installed (expected if no node versions in vars)"
           echo "=== Git ==="
           git --version
           echo "=== Curl ==="
           curl --version | head -1
-          echo "=== Custom tools ==="
-          for t in claude opencode kind; do
-            echo -n "$t: "; command -v $t 2>/dev/null || echo "(not installed)"
-          done
+          echo "=== Node ==="
+          sudo -u testuser bash -c 'source ~/.nvm/nvm.sh && node --version' || echo "NVM not installed (no node versions in vars)"
