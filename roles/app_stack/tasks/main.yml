@@ -238,7 +238,8 @@
   ansible.builtin.shell: |
     set -e
     export HOME="{{ user_home }}"
-    . "{{ user_home }}/.nvm/nvm.sh"
+    export NVM_DIR="{{ user_home }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
     nvm install "{{ item }}"
   args:
     executable: /bin/bash
@@ -250,6 +251,8 @@
   ansible.builtin.shell: |
     set -e
     export HOME="{{ user_home }}"
+    export NVM_DIR="{{ user_home }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
     . "{{ user_home }}/.nvm/nvm.sh"
     nvm alias default "{{ node_versions[0] }}"
   args:
