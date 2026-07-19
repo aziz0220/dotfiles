@@ -27,13 +27,12 @@ jobs:
         run: |
           mkdir -p .bootstrap/home/.ssh
           touch .bootstrap/home/.ssh/authorized_keys
-          echo "test" | sudo tee .bootstrap/home/.zshrc
-          echo "test" | sudo tee .bootstrap/home/.gitconfig
-          sudo chown -R testuser:testuser .bootstrap/home/
+          echo "test" | tee .bootstrap/home/.zshrc
+          echo "test" | tee .bootstrap/home/.gitconfig
       - name: Decrypt vault for full test
         run: |
           if [ -n "$SETUP_SECRETS_PASSWORD" ] && [ -f scripts/decrypt_home_bundle.sh ]; then
-            sudo rm -rf .bootstrap/home
+            rm -rf .bootstrap/home
             bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
           else
             echo "Secret not set or decrypt script not found, using minimal bootstrap"
@@ -42,24 +41,24 @@ jobs:
           SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
       - name: Ansible dry-check
         run: >
-          sudo -u testuser bash -c 'cd "$0" && ansible-playbook local.yml --check
+          ansible-playbook local.yml --check
           -i inventory.ini
           -e "user_name=testuser"
           -e "user_home=/home/testuser"
           -e "user_uid=2000"
           -e "user_gid=2000"
           -e "user_shell=/bin/bash"
-          --tags core,software' "$PWD"
+          --tags core,software
       - name: Install packages
         run: >
-          sudo -u testuser bash -c 'cd "$0" && ansible-playbook local.yml
+          ansible-playbook local.yml
           -i inventory.ini
           -e "user_name=testuser"
           -e "user_home=/home/testuser"
           -e "user_uid=2000"
           -e "user_gid=2000"
           -e "user_shell=/bin/bash"
-          --tags software' "$PWD"
+          --tags software
       - name: Verify
         run: |
           echo "=== Git ==="; git --version
