@@ -39,9 +39,13 @@ jobs:
           fi
         env:
           SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
+      - name: Set directory permissions for testuser
+        run: |
+          chmod a+rx "$GITHUB_WORKSPACE"
+          chmod -R a+rX "$GITHUB_WORKSPACE"
       - name: Install packages
         run: >
-          ansible-playbook local.yml
+          sudo -H -u testuser ansible-playbook local.yml
           -i inventory.ini
           -e "user_name=testuser"
           -e "user_home=/home/testuser"
