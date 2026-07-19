@@ -114,9 +114,13 @@ jobs:
           exit $errors
 
   provision:
-    name: Full provision
-    runs-on: ubuntu-latest
+    name: Full provision (${{ matrix.distro }})
+    runs-on: ${{ matrix.distro }}
     needs: [lint, validate, security]
+    strategy:
+      matrix:
+        distro: [ubuntu-22.04, ubuntu-24.04]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
 
