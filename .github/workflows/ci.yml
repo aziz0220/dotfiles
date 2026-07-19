@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHON_VERSION: "3.12"
+
 jobs:
   lint:
     name: Lint
@@ -17,17 +20,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install tools
+      - name: Install system deps
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y shellcheck ansible
-          pip install yamllint ansible-lint
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck ansible
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python deps
+        run: pip install yamllint ansible-lint
 
       - name: YAML lint
         run: yamllint --strict .
 
       - name: Shellcheck
-        run: shellcheck scripts/*.sh install
+        run: shellcheck scripts/*.sh install ansible-run
 
       - name: Ansible syntax check
         run: ansible-playbook --syntax-check -i inventory.ini local.yml
@@ -45,18 +55,20 @@ jobs:
         run: |
           errors=0
           for f in vars/*.yml; do
-            python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null || { echo "INVALID: $f"; errors=$((errors+1)); continue; }
-            echo "OK: $f"
+            python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null \
+              && echo "OK: $f" \
+              || { echo "INVALID: $f"; errors=$((errors+1)); }
           done
           exit $errors
 
       - name: Check required files
         run: |
-          for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install; do
+          for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install Makefile; do
             test -f "$f" && echo "OK: $f" || { echo "MISSING: $f"; exit 1; }
           done
           for role in system_setup home_restore app_stack; do
-            test -f "roles/$role/tasks/main.yml" && echo "OK" || { echo "MISSING: roles/$role/tasks/main.yml"; exit 1; }
+            test -f "roles/$role/tasks/main.yml" && echo "OK: roles/$role/tasks/main.yml" \
+              || { echo "MISSING: roles/$role/tasks/main.yml"; exit 1; }
           done
 
       - name: Bootstrap home is gitignored
@@ -67,10 +79,10 @@ jobs:
           fi
           echo "OK: .bootstrap/home/ is gitignored"
 
-      - name: Vault is AES256 encrypted
+      - name: Vault is present
         run: |
           if file vault/home-secrets.tar.gz.aes256 | grep -q 'data'; then
-            echo "OK: vault present"
+            echo "OK: vault/home-secrets.tar.gz.aes256"
           else
             echo "MISSING: vault/home-secrets.tar.gz.aes256"
             exit 1
@@ -104,13 +116,14 @@ jobs:
   provision:
     name: Full provision
     runs-on: ubuntu-latest
+    needs: [lint, validate, security]
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ansible git curl tar unzip ca-certificates openssl
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ansible git curl tar unzip ca-certificates openssl
 
       - name: Create test user
         run: |
@@ -129,9 +142,10 @@ jobs:
           SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
         run: |
           if [ -f scripts/decrypt_home_bundle.sh ]; then
-            bash scripts/decrypt_home_bundle.sh               vault/home-secrets.tar.gz.aes256               .bootstrap/home               SETUP_SECRETS_PASSWORD
+            bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
+            echo "Vault decrypted"
           else
-            echo "decrypt script missing, using skeleton"
+            echo "No decrypt script found, using skeleton"
           fi
 
       - name: Prepare ansible tmp dir

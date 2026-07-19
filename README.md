@@ -1,129 +1,316 @@
-# Ubuntu Setup (Ansible Bootstrap)
+<div align="center">
+  <h1>Ubuntu Setup</h1>
+  <p><strong>Declarative, portable workstation bootstrap — one command, any machine</strong></p>
 
-This repo is the source-of-truth bootstrap repo for rebuilding your workstation on a new machine.
+  <p>
+    <a href="https://github.com/aziz0220/ubuntu-setup/actions/workflows/ci.yml">
+      <img src="https://github.com/aziz0220/ubuntu-setup/actions/workflows/ci.yml/badge.svg" alt="CI">
+    </a>
+    <a href="LICENSE">
+      <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+    </a>
+    <a href="https://github.com/aziz0220/ubuntu-setup">
+      <img src="https://img.shields.io/badge/ansible-11.0%2B-orange.svg" alt="Ansible">
+    </a>
+    <a href="https://github.com/aziz0220/ubuntu-setup">
+      <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
+    </a>
+    <a href="https://github.com/aziz0220/ubuntu-setup">
+      <img src="https://img.shields.io/badge/maintained-yes-green.svg" alt="Maintenance">
+    </a>
+  </p>
+</div>
 
-**Last captured: July 2026 — Ubuntu 24.04 (Noble) with Ansible-managed state.**
+---
 
-Goal:
-- install system packages (apt, snap, npm, pipx, cargo)
-- restore dotfiles/configs from captured bootstrap home
-- restore SSH/GPG/cloud secrets from encrypted bundle
-- clone working repositories
-- install CLI tools (aws-cli, docker, ollama, kind, uv)
-- set up runtimes (Node via nvm)
+Provision any Ubuntu machine — WSL2, cloud VM, bare metal, or VM — with your complete development environment in a single command. Your dotfiles, SSH keys, GPG keys, cloud credentials, packages, CLI tools, runtimes, and repos are restored from an encrypted, version-controlled source of truth.
+
+## Features
+
+- **One-command bootstrap** — `curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install | bash`
+- **Encrypted secrets** — SSH keys, GPG keys, AWS credentials, kube config stored in AES-256-CBC + PBKDF2 vault
+- **Declarative machine state** — packages, snaps, npm/pipx/cargo/gem packages, repos, runtimes all captured as version-controlled YAML
+- **Idempotent** — safe to run multiple times; only installs what's missing
+- **Tagged execution** — run only what you need: `./ansible-run dotfiles`, `./ansible-run node`, etc.
+- **Auto-detecting** — detects username, home, UID/GID, shell at runtime
+- **Cross-distro compatible** — `t64` package name fallbacks for Ubuntu 22.04 ↔ 24.04 transitions
+- **CI-verified** — every commit runs lint, validation, secret scan, and full provision in CI
+- **Portable** — works on WSL2, cloud VMs (AWS, GCP, Azure), bare metal, VMware/VirtualBox
 
 ## Quick Start
 
-On a **new Ubuntu WSL** distro:
+### Prerequisites
 
-1. Install bootstrap dependencies:
+- Ubuntu 22.04+ (Jammy, Noble) — on WSL2, cloud VM, or bare metal
+- `curl` and `sudo` access
+
+### One-command setup
 
 ```bash
-sudo apt-get update && sudo apt-get install -y ansible git curl openssh-client gh
+bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install)
 ```
 
-2. Authenticate with GitHub (SSH or token):
+The script will:
+
+1. Install Ansible and dependencies
+2. Clone this repository
+3. Prompt for your vault password
+4. Run the full provisioning playbook
+5. Restore your dotfiles, secrets, packages, tools, and repos
+
+### Authenticated access (for private repos and GitHub auth)
 
 ```bash
-# Option A: SSH key (recommended - creates a temp key, ansible will restore your real one)
-ssh-keygen -t ed25519 -f ~/.ssh/temp_github -N ""
-cat ~/.ssh/temp_github.pub
-# Add the key at https://github.com/settings/keys, then:
-git clone git@github.com:aziz0220/ubuntu-setup.git && cd ubuntu-setup
+# Option A: SSH key (temporary, real one gets restored)
+ssh-keygen -t ed25519 -f ~/.ssh/github_setup -N ""
+cat ~/.ssh/github_setup.pub
+# Add key at https://github.com/settings/keys
 
-# Option B: GitHub personal access token
-git clone https://<TOKEN>@github.com/aziz0220/ubuntu-setup.git && cd ubuntu-setup
+# Option B: Personal access token
+export GITHUB_TOKEN=ghp_...
+
+# Then run the installer
+bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install)
 ```
 
-3. Set your secrets password and run full bootstrap (auto-detects your username):
+### Manual setup
 
 ```bash
-export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
+git clone https://github.com/aziz0220/ubuntu-setup.git
+cd ubuntu-setup
+export SETUP_SECRETS_PASSWORD='your-vault-password'
 ./ansible-run
 ```
 
-This runs `local.yml` on localhost with `become`.
+## Usage
 
-## Secrets Workflow
-
-Plaintext home bootstrap data lives in:
-- `.bootstrap/home` (gitignored)
-
-Encrypted bundle lives in:
-- `vault/home-secrets.tar.gz.aes256`
-
-Decrypt bundle into `.bootstrap/home`:
+### Run everything
 
 ```bash
-export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
+./ansible-run
+# or with an explicit tag set
+./ansible-run all
+```
+
+### Run specific components
+
+```bash
+./ansible-run core        # system packages, locale, timezone, services
+./ansible-run dotfiles    # shell config, gitconfig, SSH config
+./ansible-run home        # user home restore from bootstrap bundle
+./ansible-run node        # Node.js via nvm + npm global packages
+./ansible-run ssh         # SSH key setup
+```
+
+### Decrypt / encrypt secrets bundle
+
+```bash
+export SETUP_SECRETS_PASSWORD='your-vault-password'
+
+# Decrypt into .bootstrap/home
 ./scripts/decrypt_home_bundle.sh
-```
 
-Encrypt `.bootstrap/home` back into vault bundle:
-
-```bash
-export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
+# Encrypt back from .bootstrap/home
 ./scripts/encrypt_home_bundle.sh
 ```
 
-## Re-capturing State (one-time migration)
-
-Capture current machine config into `.bootstrap/home` (curated allowlist):
+### Capture current machine state
 
 ```bash
+# Capture dotfiles and configs
 ALLOW_REPO_OVERWRITE=1 ./scripts/capture_bootstrap_home.sh
-```
 
-Then encrypt it:
-
-```bash
-export SETUP_SECRETS_PASSWORD='YOUR_PASSWORD'
-./scripts/encrypt_home_bundle.sh
-```
-
-Capture software inventory from current machine into Ansible vars (`apt`, `snap`, `npm -g`, `pipx`, `cargo`, `gem`, `flatpak`):
-
-```bash
+# Capture installed packages, snap, npm/pipx/cargo/gem/flatpak
 ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 ```
 
-## Validation
-
-Run post-bootstrap checks:
+### Validate setup
 
 ```bash
 ./scripts/validate_setup.sh
 ```
 
-Validation covers:
-- required repo files
-- package parity (normalized for `t64` transitions)
-- repository path/git parity from `vars/repos.yml`
-- home parity from `.bootstrap/home`
+## How It Works
 
-## Tags
-
-Run a subset of tasks:
-
-```bash
-./ansible-run core
-./ansible-run dotfiles
-./ansible-run node
+```
+┌─────────────────────────────────────────────────────────┐
+│                    ubuntu-setup                          │
+│                                                          │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐ │
+│  │  install      │   │  ansible-run │   │  Makefile     │ │
+│  │  (bootstrap)  │──▶│  (orchestrate)│  │  (dev tasks)   │ │
+│  └──────────────┘   └──────┬───────┘   └──────────────┘ │
+│                             │                             │
+│                    ┌────────▼────────┐                   │
+│                    │   local.yml      │                   │
+│                    │  (main playbook) │                   │
+│                    └────────┬────────┘                   │
+│                             │                             │
+│         ┌───────────────────┼───────────────────┐        │
+│         ▼                   ▼                   ▼        │
+│  ┌────────────┐    ┌──────────────┐    ┌────────────┐   │
+│  │system_setup│    │  app_stack   │    │home_restore │   │
+│  │ - apt srcs │    │ - packages   │    │ - user/groups│  │
+│  │ - locale   │    │ - snap       │    │ - dotfiles  │   │
+│  │ - timezone │    │ - npm/pipx  │    │ - SSH/GPG   │   │
+│  │ - services │    │ - runtimes  │    │ - repos     │   │
+│  └────────────┘    │ - cargo/gem │    └────────────┘   │
+│                    │ - flatpak   │                       │
+│                    └──────────────┘                      │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Data Sources                                     │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │   │
+│  │  │ vars/*.yml│  │ vault/   │  │ vars/repos.yml │  │   │
+│  │  │(captured │  │(encrypted│  │(git repo list)  │  │   │
+│  │  │ state)   │  │ secrets) │  │                 │  │   │
+│  │  └──────────┘  └──────────┘  └────────────────┘  │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Repo Structure
+### Secrets architecture
 
-- `local.yml`: main playbook entrypoint
-- `roles/system_setup`: apt sources, locale/timezone, services
-- `roles/app_stack`: packages, snap, npm, pipx, cargo, gem, flatpak, runtimes, custom tools
-- `roles/home_restore`: user, groups, home restore, repos
-- `vars/*.yml`: declarative machine snapshot inputs
-- `scripts/*`: capture/encrypt/decrypt/validate helpers
+```
+┌──────────────────────┐      SETUP_SECRETS_PASSWORD     ┌──────────────────────┐
+│  vault/              │     (environment variable)       │  .bootstrap/home/    │
+│  home-secrets.tar.gz │ ────────────decrypt────────────▶ │  (gitignored)        │
+│  .aes256             │                                  │  - .ssh/             │
+│  (committed,         │ ◀───────────encrypt───────────── │  - .gnupg/           │
+│   encrypted)         │                                  │  - .aws/             │
+└──────────────────────┘                                  │  - .kube/            │
+                                                          │  - .zshrc            │
+                                                          │  - .gitconfig        │
+                                                          │  - ...               │
+                                                          └──────────────────────┘
+```
 
-## Notes
+## Project Structure
 
-- Repo-first model: `vars/*.yml` + `.bootstrap/home` are canonical.
-- Keep plaintext secrets only in `.bootstrap/home` (ignored by git).
-- Commit only encrypted secrets artifacts in `vault/`.
-- `apt` package list uses `t64` fallback for cross-distro compatibility.
-- Add one-off installers to `vars/custom-tools.yml` using `check_cmd` + `install_cmd`.
+```
+.
+├── install                 # One-command bootstrap entry point
+├── ansible-run             # Playbook orchestrator
+├── Makefile                # Common development tasks
+├── local.yml               # Main playbook
+├── site.yml                # Site-wide playbook (multi-host)
+├── inventory.ini           # Ansible inventory (localhost)
+├── ansible.cfg             # Ansible configuration
+│
+├── roles/
+│   ├── system_setup/       # System-level configuration
+│   │   ├── tasks/main.yml
+│   │   ├── files/          # Static files (apt sources, wsl.conf)
+│   │   ├── templates/      # Jinja2 templates
+│   │   └── handlers/
+│   ├── app_stack/          # Application packages and tools
+│   │   └── tasks/main.yml
+│   └── home_restore/       # User home restoration
+│       └── tasks/main.yml
+│
+├── tasks/                  # Composable task includes
+│   ├── core-setup.yml
+│   ├── dotfiles.yml
+│   ├── node-setup.yml
+│   └── ssh.yml
+│
+├── vars/                   # Declarative machine state (version controlled)
+│   ├── user-profile.yml    # User metadata
+│   ├── groups.yml          # System groups
+│   ├── system-locale.yml   # Locale and timezone
+│   ├── installed-packages.yml  # apt packages
+│   ├── snap-list.yml       # Snap packages
+│   ├── npm-global.yml      # Global npm packages
+│   ├── pipx.yml            # pipx-installed tools
+│   ├── cargo.yml           # Cargo-installed tools
+│   ├── gem.yml             # Ruby gems
+│   ├── flatpak.yml         # Flatpak applications
+│   ├── repos.yml           # Git repositories to clone
+│   ├── runtimes.yml        # Node/SDKMAN runtime versions
+│   ├── custom-tools.yml    # One-off tool installers
+│   └── systemd-enabled-services.yml
+│
+├── vault/
+│   ├── .gitkeep
+│   └── home-secrets.tar.gz.aes256  # Encrypted secrets bundle
+│
+├── scripts/
+│   ├── capture_bootstrap_home.sh      # Capture dotfiles/configs
+│   ├── capture_software_inventory.sh  # Capture package state
+│   ├── decrypt_home_bundle.sh         # Decrypt secrets vault
+│   ├── encrypt_home_bundle.sh         # Encrypt secrets vault
+│   └── validate_setup.sh              # Post-provision validation
+│
+└── .github/
+    ├── workflows/ci.yml
+    ├── dependabot.yml
+    └── ...
+```
+
+## Configuration Reference
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SETUP_SECRETS_PASSWORD` | For decryption | Passphrase for the encrypted secrets vault |
+| `BOOTSTRAP_HOME_DIR` | No | Override bootstrap home directory (default: `.bootstrap/home`) |
+| `ENCRYPTED_HOME_BUNDLE` | No | Override vault file path |
+| `ANSIBLE_PLAYBOOK_FILE` | No | Override playbook file (default: `local.yml`) |
+| `GITHUB_TOKEN` | For GH auth | GitHub personal access token |
+
+### Tags
+
+| Tag | Components |
+|-----|-----------|
+| `all` (default) | Everything |
+| `core` | APT sources, locale, timezone, systemd services |
+| `dotfiles` | Shell config, `.gitconfig`, `.ssh/config` |
+| `node` | nvm + Node.js + npm global packages |
+| `ssh` | SSH key deployment |
+| `home` | Full home restore from bootstrap bundle |
+
+## Development
+
+### Prerequisites for development
+
+```bash
+make setup
+```
+
+### Lint and validate
+
+```bash
+make lint        # yamllint + shellcheck + ansible-lint
+make validate    # YAML syntax + required files
+make check       # lint + validate
+```
+
+### CI locally
+
+```bash
+make ci          # Run the same checks as GitHub Actions
+```
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit changes: `git commit -am 'Add feature'`
+4. Push: `git push origin feature/my-feature`
+5. Open a pull request
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the security policy.
+
+- Secrets are **never** stored in plaintext in the repository
+- The bootstrap home directory (`.bootstrap/home/`) is gitignored
+- Only the encrypted vault (`vault/home-secrets.tar.gz.aes256`) is committed
+- Vault uses AES-256-CBC with PBKDF2 key derivation
+
+## License
+
+[MIT](LICENSE) &copy; Aziz Ben Amor
