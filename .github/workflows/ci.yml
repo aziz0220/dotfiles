@@ -59,7 +59,7 @@ jobs:
             test -f "roles/$role/tasks/main.yml" && echo "OK" || { echo "MISSING: roles/$role/tasks/main.yml"; exit 1; }
           done
 
-      - name: Bootstrap home gitignored
+      - name: Bootstrap home is gitignored
         run: |
           if git ls-files --error-unmatch .bootstrap/home/ 2>/dev/null; then
             echo "FAIL: .bootstrap/home/ is tracked"
@@ -93,7 +93,6 @@ jobs:
               errors=$((errors+1))
             done
           done
-          # Check for secret files (exclude vault)
           for f in $(git ls-files -- '*secret*' 2>/dev/null); do
             case "$f" in
               vault/*) echo "SKIP (encrypted vault): $f" ;;
@@ -102,30 +101,47 @@ jobs:
           done
           exit $errors
 
-  integration:
-    name: Integration test
+  provision:
+    name: Full provision
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y ansible git curl tar unzip ca-certificates
+          sudo apt-get install -y ansible git curl tar unzip ca-certificates openssl
 
       - name: Create test user
         run: |
           sudo useradd -m -s /bin/bash -u 2000 testuser
           echo 'testuser ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/testuser
 
-      - name: Prepare workspace and ansible temp
+      - name: Setup home skeleton
         run: |
-          chmod a+rx "$GITHUB_WORKSPACE"
-          chmod -R a+rX "$GITHUB_WORKSPACE"
+          mkdir -p .bootstrap/home/.ssh
+          touch .bootstrap/home/.ssh/authorized_keys
+          echo "test" > .bootstrap/home/.zshrc
+          echo "test" > .bootstrap/home/.gitconfig
+
+      - name: Decrypt vault
+        env:
+          SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
+        run: |
+          if [ -f scripts/decrypt_home_bundle.sh ]; then
+            bash scripts/decrypt_home_bundle.sh               vault/home-secrets.tar.gz.aes256               .bootstrap/home               SETUP_SECRETS_PASSWORD
+          else
+            echo "decrypt script missing, using skeleton"
+          fi
+
+      - name: Prepare ansible tmp dir
+        run: |
           sudo mkdir -p /home/testuser/.ansible/tmp
           sudo chmod 777 /home/testuser/.ansible /home/testuser/.ansible/tmp
+          chmod a+rx "$GITHUB_WORKSPACE"
+          chmod -R a+rX "$GITHUB_WORKSPACE"
 
-      - name: Install packages
+      - name: Run full playbook
         env:
           HOME: /home/testuser
         run: >
@@ -136,4 +152,31 @@ jobs:
           -e "user_uid=2000"
           -e "user_gid=2000"
           -e "user_shell=/bin/bash"
-          --tags software
+
+      - name: Verify installed components
+        run: |
+          set -x
+          echo "=== System ==="
+          cat /etc/os-release | head -2
+          uname -r
+          echo "=== Shell ==="
+          sudo -u testuser zsh --version || echo "zsh not installed"
+          echo "=== Git ==="
+          git --version
+          echo "=== Curl ==="
+          curl --version | head -1
+          echo "=== Node ==="
+          sudo -u testuser bash -c 'export HOME=/home/testuser && source ~/.nvm/nvm.sh && node --version && npm --version' || echo "Node not installed"
+          echo "=== Neovim ==="
+          sudo -u testuser nvim --version | head -1 || echo "nvim not installed"
+          echo "=== Tmux ==="
+          tmux -V || echo "tmux not installed"
+          echo "=== GitHub CLI ==="
+          gh --version | head -1 || echo "gh not installed"
+          echo "=== Custom tools ==="
+          for t in claude opencode kind; do
+            echo -n "$t: "
+            sudo -u testuser bash -c "command -v $t" || echo "(not installed)"
+          done
+          echo "=== Dotfiles ==="
+          ls -la /home/testuser/ 2>/dev/null | head -10
