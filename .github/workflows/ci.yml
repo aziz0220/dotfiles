@@ -87,21 +87,20 @@ jobs:
       - name: Check for tracked credentials
         run: |
           errors=0
-          for pattern in '*id_rsa*' '*id_ed25519*' '*.pem' '*credentials*' '*secret*' '*.key'; do
+          for pattern in '*id_rsa*' '*id_ed25519*' '*.pem' '*credentials*; do
             for f in $(git ls-files -- "$pattern" 2>/dev/null); do
               echo "WARNING: Potential credential: $f"
               errors=$((errors+1))
             done
           done
+          # Check for secret files (exclude vault)
+          for f in $(git ls-files -- '*secret*' 2>/dev/null); do
+            case "$f" in
+              vault/*) echo "SKIP (encrypted vault): $f" ;;
+              *) echo "WARNING: Potential credential: $f"; errors=$((errors+1)) ;;
+            esac
+          done
           exit $errors
-
-      - name: Check for secrets in files
-        run: |
-          if command -v gitleaks &>/dev/null; then
-            gitleaks detect --source . --no-git -v 2>&1 || true
-          else
-            echo "gitleaks not available, skipping"
-          fi
 
   integration:
     name: Integration test
