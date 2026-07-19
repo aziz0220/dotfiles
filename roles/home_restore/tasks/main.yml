@@ -9,6 +9,10 @@
     gid: "{{ item.gid }}"
     state: present
   loop: "{{ user_groups }}"
+  register: _group_results
+  failed_when:
+    - _group_results is failed
+    - '"already exists" not in _group_results.msg | default("")'
 
 - name: Ensure primary user group exists
   ansible.builtin.group:
