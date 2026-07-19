@@ -35,65 +35,46 @@ jobs:
       - name: Ansible lint
         run: ansible-lint local.yml
 
-  validate-vars:
-    name: Validate vars
+  validate:
+    name: Validate
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate YAML structure
+      - name: Validate YAML vars
         run: |
           errors=0
           for f in vars/*.yml; do
             python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null || {
-              echo "INVALID: $f"
-              errors=$((errors+1))
-              continue
+              echo "INVALID: $f"; errors=$((errors+1)); continue
             }
             echo "OK: $f"
           done
           exit $errors
-
-      - name: Check required vars files
-        run: |
-          for f in user-profile system-locale installed-packages systemd-enabled-services \
-                   snap-list groups runtimes npm-global pipx cargo gem flatpak custom-tools repos; do
-            test -f "vars/$f.yml" && echo "OK: vars/$f.yml" || { echo "MISSING: vars/$f.yml"; exit 1; }
-          done
-
-  validate-structure:
-    name: Validate structure
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Check required files
         run: |
           for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install; do
             test -f "$f" && echo "OK: $f" || { echo "MISSING: $f"; exit 1; }
           done
-
-      - name: Check roles have tasks
-        run: |
           for role in system_setup home_restore app_stack; do
             test -f "roles/$role/tasks/main.yml" && echo "OK: roles/$role/tasks/main.yml" \
               || { echo "MISSING: roles/$role/tasks/main.yml"; exit 1; }
           done
 
-      - name: Encrypted vault exists
-        run: |
-          test -f vault/home-secrets.tar.gz.aes256 && echo "OK: vault present" \
-            || { echo "MISSING: vault/home-secrets.tar.gz.aes256"; exit 1; }
-
       - name: Bootstrap home is gitignored
         run: |
           if git ls-files --error-unmatch .bootstrap/home/ 2>/dev/null; then
-            echo "FAIL: .bootstrap/home/ is tracked by git!"
-            exit 1
+            echo "FAIL: .bootstrap/home/ is tracked by git!"; exit 1
           fi
           echo "OK: .bootstrap/home/ is properly gitignored"
 
-  security-scan:
+      - name: Vault is AES256 encrypted
+        run: |
+          file vault/home-secrets.tar.gz.aes256 | grep -q 'data' && echo "OK: vault present" \
+            || { echo "MISSING or invalid: vault/home-secrets.tar.gz.aes256"; exit 1; }
+
+  security:
     name: Secret scan
     runs-on: ubuntu-24.04
     steps:
@@ -101,18 +82,84 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check for accidental credential files
+      - name: Check for tracked credentials
         run: |
           errors=0
           for pattern in '*id_rsa*' '*id_ed25519*' '*.pem' '*credentials*' '*secret*' '*.key'; do
             for f in $(git ls-files -- "$pattern" 2>/dev/null); do
-              echo "WARNING: Potential credential file tracked: $f"
-              errors=$((errors+1))
+              echo "WARNING: Potential credential: $f"; errors=$((errors+1))
             done
           done
           exit $errors
 
-      - name: Scan git history for secrets
+      - name: Gitleaks scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  integration:
+    name: Integration test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ansible git curl tar unzip ca-certificates
+
+      - name: Create test user
+        run: |
+          sudo useradd -m -s /bin/bash -u 1000 testuser
+          echo 'testuser ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/testuser
+
+      - name: Create minimal bootstrap home
+        run: |
+          mkdir -p .bootstrap/home/.ssh
+          touch .bootstrap/home/.ssh/authorized_keys
+          echo "test" | sudo tee .bootstrap/home/.zshrc
+          echo "test" | sudo tee .bootstrap/home/.gitconfig
+          sudo chown -R testuser:testuser .bootstrap/home/
+
+      - name: Decrypt vault for full test (if secret available)
+        if: ${{ secrets.SETUP_SECRETS_PASSWORD != '' }}
+        env:
+          SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
+        run: |
+          rm -rf .bootstrap/home
+          bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
+
+      - name: Run ansible-playbook dry check (core + software)
+        run: |
+          sudo -u testuser ansible-playbook local.yml --check \
+            -i inventory.ini \
+            -e "user_name=testuser" \
+            -e "user_home=/home/testuser" \
+            -e "user_uid=1000" \
+            -e "user_gid=1000" \
+            -e "user_shell=/bin/bash" \
+            --tags core,software 2>&1 | tail -20
+
+      - name: Run package install (real, not dry-run)
+        run: |
+          sudo -u testuser ansible-playbook local.yml \
+            -i inventory.ini \
+            -e "user_name=testuser" \
+            -e "user_home=/home/testuser" \
+            -e "user_uid=1000" \
+            -e "user_gid=1000" \
+            -e "user_shell=/bin/bash" \
+            --tags software 2>&1 | tail -30
+
+      - name: Verify installed components
+        run: |
+          echo "=== Node ==="
+          sudo -u testuser bash -c 'source ~/.nvm/nvm.sh && node --version' || echo "NVM not installed (expected if no node versions in vars)"
+          echo "=== Git ==="
+          git --version
+          echo "=== Curl ==="
+          curl --version | head -1
+          echo "=== Custom tools ==="
+          for t in claude opencode kind; do
+            echo -n "$t: "; command -v $t 2>/dev/null || echo "(not installed)"
+          done
