@@ -23,10 +23,12 @@ jobs:
         run: |
           sudo useradd -m -s /bin/bash -u 2000 testuser
           echo 'testuser ALL=(ALL) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/testuser
-      - name: Set up workspace permissions
+      - name: Prepare workspace and ansible temp
         run: |
           chmod a+rx "$GITHUB_WORKSPACE"
           chmod -R a+rX "$GITHUB_WORKSPACE"
+          sudo mkdir -p /home/testuser/.ansible/tmp
+          sudo chmod 777 /home/testuser/.ansible /home/testuser/.ansible/tmp
       - name: Install packages
         env:
           HOME: /home/testuser
