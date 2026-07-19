@@ -54,15 +54,11 @@
   when: not bootstrap_home_tree.stat.exists
 
 - name: Copy bootstrap home tree to target home
-  ansible.posix.synchronize:
-    src: "{{ bootstrap_home_dir }}/"
-    dest: "{{ user_home }}/"
-    owner: true
-    group: true
-    rsync_opts:
-      - "--exclude=.nvm"
-      - "--exclude=.cache"
+  ansible.builtin.command:
+    cmd: rsync -a --no-owner --no-group --exclude=.nvm --exclude=.cache {{ bootstrap_home_dir | quote }}/ {{ user_home | quote }}/
+    creates: "{{ user_home }}/.bashrc"
   when: bootstrap_home_tree.stat.exists
+  become_user: "{{ user_name }}"
 
 - name: Restore SSH strict permissions
   ansible.builtin.stat:
