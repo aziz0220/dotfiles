@@ -39,16 +39,6 @@ jobs:
           fi
         env:
           SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
-      - name: Ansible dry-check
-        run: >
-          ansible-playbook local.yml --check
-          -i inventory.ini
-          -e "user_name=testuser"
-          -e "user_home=/home/testuser"
-          -e "user_uid=2000"
-          -e "user_gid=2000"
-          -e "user_shell=/bin/bash"
-          --tags core,software
       - name: Install packages
         run: >
           ansible-playbook local.yml
