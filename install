@@ -1,17 +1,182 @@
 #!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# ubuntu-setup — One-command workstation bootstrap
+#
+# Usage:
+#   bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/ubuntu-setup/main/install)
+#
+# Environment:
+#   SETUP_SECRETS_PASSWORD    Vault passphrase (prompted if unset)
+#   GITHUB_TOKEN              GitHub personal access token (for private repos)
+#   INSTALL_DIR               Target directory (default: ~/ubuntu-setup)
+#   ANSIBLE_TAGS              Comma-separated tags (default: all)
+#   SKIP_VAULT                Set to 1 to skip vault decryption
+#   DEBUG                     Set to 1 for verbose output
+# ---------------------------------------------------------------------------
 set -euo pipefail
+# shellcheck disable=SC1091
 
-if [ "$(id -u)" -ne 0 ]; then
-  if ! command -v sudo >/dev/null 2>&1; then
-    echo "ERROR: sudo is required to install ansible." >&2
-    exit 1
+REPO_URL="https://github.com/aziz0220/ubuntu-setup.git"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/ubuntu-setup}"
+ANSIBLE_TAGS="${ANSIBLE_TAGS:-all}"
+
+# ---- Colors ---------------------------------------------------------------
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
+BOLD='\033[1m'; NC='\033[0m'
+
+log()  { printf "${GREEN}✓${NC} %s\n" "$1"; }
+warn() { printf "${YELLOW}⚠${NC} %s\n" "$1"; }
+err()  { printf "${RED}✗${NC} %s\n" "$1" >&2; }
+info() { printf "${CYAN}ℹ${NC} %s\n" "$1"; }
+header() { printf "\n${BOLD}%s${NC}\n" "$1"; }
+
+cleanup() {
+  if [ -n "${TMPDIR:-}" ] && [ -d "$TMPDIR" ]; then
+    rm -rf "$TMPDIR"
   fi
-  SUDO=(sudo)
-else
-  SUDO=()
+}
+trap cleanup EXIT
+
+# ---- Pre-flight checks ----------------------------------------------------
+header "Pre-flight checks"
+
+if [ "$(id -u)" -eq 0 ]; then
+  err "This script should not be run as root. It uses sudo when needed."
+  exit 1
 fi
 
-"${SUDO[@]}" apt-get update -y
-"${SUDO[@]}" apt-get install -y ansible curl git
+if ! command -v sudo >/dev/null 2>&1; then
+  err "sudo is required but not found."
+  exit 1
+fi
 
-echo "ansible installed. Run: ./ansible-run"
+if ! command -v curl >/dev/null 2>&1; then
+  info "Installing curl..."
+  sudo apt-get update -qq && sudo apt-get install -y -qq curl
+fi
+
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+info "OS: ${OS} | Arch: ${ARCH} | User: $(whoami)"
+
+case "$OS" in
+  Linux)
+    if [ -f /etc/os-release ]; then
+      # shellcheck source=/dev/null
+      . /etc/os-release
+      info "Distro: $NAME $VERSION_ID"
+      case "$ID" in
+        ubuntu|debian) ;;
+        *) warn "Untested distro: $ID. Proceeding anyway." ;;
+      esac
+    fi
+    ;;
+  Darwin)
+    err "macOS is not yet supported. Contributions welcome!"
+    exit 1
+    ;;
+  *)
+    err "Unsupported OS: $OS"
+    exit 1
+    ;;
+esac
+
+# ---- Install dependencies -------------------------------------------------
+header "Installing dependencies"
+
+if ! command -v ansible-playbook >/dev/null 2>&1; then
+  info "Installing Ansible..."
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq ansible git openssh-client
+  log "Ansible $(ansible --version | head -1)"
+else
+  log "Ansible already installed: $(ansible --version | head -1)"
+fi
+
+if command -v git >/dev/null 2>&1; then
+  log "Git already installed: $(git --version)"
+else
+  sudo apt-get install -y -qq git
+fi
+
+# ---- Clone / update repository -------------------------------------------
+header "Setting up repository"
+
+if [ -d "$INSTALL_DIR/.git" ]; then
+  info "Updating existing clone at $INSTALL_DIR"
+  cd "$INSTALL_DIR"
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    git remote set-url origin "https://${GITHUB_TOKEN}@github.com/aziz0220/ubuntu-setup.git"
+  fi
+  git pull --ff-only
+  log "Repository updated"
+else
+  info "Cloning into $INSTALL_DIR"
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    git clone "https://${GITHUB_TOKEN}@github.com/aziz0220/ubuntu-setup.git" "$INSTALL_DIR"
+  else
+    git clone "$REPO_URL" "$INSTALL_DIR"
+  fi
+  log "Repository cloned"
+fi
+
+cd "$INSTALL_DIR"
+
+# ---- Vault password -------------------------------------------------------
+header "Secrets vault"
+
+SETUP_SECRETS_PASSWORD="${SETUP_SECRETS_PASSWORD:-}"
+
+if [ -z "${SETUP_SECRETS_PASSWORD}" ] && [ "${SKIP_VAULT:-0}" != "1" ]; then
+  if [ -f vault/home-secrets.tar.gz.aes256 ]; then
+    info "An encrypted secrets vault was found."
+    info "Enter the vault passphrase to restore your SSH keys, GPG keys,"
+    info "AWS credentials, kube config, and dotfiles."
+    echo
+    read -r -s -p "Vault passphrase: " SETUP_SECRETS_PASSWORD
+    echo
+    if [ -z "$SETUP_SECRETS_PASSWORD" ]; then
+      warn "Empty passphrase. Skipping vault decryption."
+      warn "Run './ansible-run' later with SETUP_SECRETS_PASSWORD set."
+    fi
+  else
+    info "No encrypted vault found. Proceeding without secrets."
+  fi
+fi
+
+export SETUP_SECRETS_PASSWORD
+
+# ---- Run ansible ----------------------------------------------------------
+header "Provisioning"
+
+if [ -n "${SETUP_SECRETS_PASSWORD}" ]; then
+  info "Vault password set — secrets will be decrypted"
+fi
+
+info "Tags: ${ANSIBLE_TAGS}"
+echo
+
+if [ "$ANSIBLE_TAGS" = "all" ]; then
+  bash ansible-run
+else
+  bash ansible-run "$ANSIBLE_TAGS"
+fi
+
+# ---- Post-install summary -------------------------------------------------
+header "Setup complete"
+
+echo
+log "Your environment is ready at ${INSTALL_DIR}"
+log "Run './ansible-run' anytime to re-provision"
+log "Run './Makefile lint' to validate changes"
+
+if [ -d ".bootstrap/home" ]; then
+  log "Secrets restored to .bootstrap/home"
+fi
+
+echo
+info "Next steps:"
+info "  - Re-login or exec zsh to apply shell changes"
+info "  - Verify with: ./scripts/validate_setup.sh"
+info "  - Re-capture state: ALLOW_REPO_OVERWRITE=1 ./scripts/capture_bootstrap_home.sh"
+echo
