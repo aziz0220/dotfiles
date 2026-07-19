@@ -28,8 +28,9 @@ jobs:
           chmod a+rx "$GITHUB_WORKSPACE"
           chmod -R a+rX "$GITHUB_WORKSPACE"
       - name: Install packages
+        env:
+          HOME: /home/testuser
         run: >
-          sudo -u testuser env HOME=/home/testuser
           ansible-playbook local.yml
           -i inventory.ini
           -e "user_name=testuser"
