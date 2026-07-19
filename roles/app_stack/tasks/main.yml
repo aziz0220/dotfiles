@@ -239,6 +239,7 @@
     set -e
     export HOME="{{ user_home }}"
     export NVM_DIR="{{ user_home }}/.nvm"
+    export NVM_NO_TEST=1
     . "$NVM_DIR/nvm.sh"
     nvm install "{{ item }}"
   args:
