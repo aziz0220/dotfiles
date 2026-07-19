@@ -54,8 +54,8 @@ awk '/t64$/ {print substr($0, 1, length($0)-3)}' "$TMP_DIR/installed-packages-ra
 sort -u -o "$TMP_DIR/installed-packages-normalized.txt" "$TMP_DIR/installed-packages-normalized.txt"
 
 comm -23 "$TMP_DIR/expected-packages.txt" "$TMP_DIR/installed-packages-normalized.txt" > "$TMP_DIR/missing-packages.txt"
-> "$TMP_DIR/missing-packages-installable.txt"
-> "$TMP_DIR/missing-packages-unavailable.txt"
+true > "$TMP_DIR/missing-packages-installable.txt"
+true > "$TMP_DIR/missing-packages-unavailable.txt"
 
 while IFS= read -r pkg; do
   candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {c=$2} END {print c}')"
