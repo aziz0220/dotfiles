@@ -28,3 +28,49 @@ jobs:
         run: ansible-playbook --syntax-check -i inventory.ini local.yml
       - name: Ansible lint
         run: ansible-lint local.yml
+
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate YAML vars
+        run: |
+          errors=0
+          for f in vars/*.yml; do
+            python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null || { echo "INVALID: $f"; errors=$((errors+1)); continue; }
+            echo "OK: $f"
+          done
+          exit $errors
+      - name: Check required files
+        run: |
+          for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install; do
+            test -f "$f" && echo "OK: $f" || { echo "MISSING: $f"; exit 1; }
+          done
+          for role in system_setup home_restore app_stack; do
+            test -f "roles/$role/tasks/main.yml" && echo "OK" || { echo "MISSING: roles/$role/tasks/main.yml"; exit 1; }
+          done
+      - name: Bootstrap home gitignored
+        run: |
+          if git ls-files --error-unmatch .bootstrap/home/ 2>/dev/null; then echo "FAIL"; exit 1; fi
+          echo "OK"
+      - name: Vault is AES256 encrypted
+        run: file vault/home-secrets.tar.gz.aes256 | grep -q 'data' && echo "OK" || { echo "MISSING"; exit 1; }
+
+  security:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for tracked credentials
+        run: |
+          errors=0
+          for pattern in '*id_rsa*' '*id_ed25519*' '*.pem' '*credentials*' '*secret*' '*.key'; do
+            for f in $(git ls-files -- "$pattern" 2>/dev/null); do
+              echo "WARNING: $f"
+              errors=$((errors+1))
+            done
+          done
+          exit $errors
