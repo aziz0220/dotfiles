@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint
@@ -56,10 +60,21 @@ jobs:
           done
 
       - name: Bootstrap home gitignored
-        run: git ls-files --error-unmatch .bootstrap/home/ 2>/dev/null && { echo "FAIL: .bootstrap/home/ is tracked"; exit 1; } || echo "OK: .bootstrap/home/ is gitignored"
+        run: |
+          if git ls-files --error-unmatch .bootstrap/home/ 2>/dev/null; then
+            echo "FAIL: .bootstrap/home/ is tracked"
+            exit 1
+          fi
+          echo "OK: .bootstrap/home/ is gitignored"
 
       - name: Vault is AES256 encrypted
-        run: file vault/home-secrets.tar.gz.aes256 | grep -q 'data' && echo "OK: vault present" || { echo "MISSING: vault/home-secrets.tar.gz.aes256"; exit 1; }
+        run: |
+          if file vault/home-secrets.tar.gz.aes256 | grep -q 'data'; then
+            echo "OK: vault present"
+          else
+            echo "MISSING: vault/home-secrets.tar.gz.aes256"
+            exit 1
+          fi
 
   security:
     name: Secret scan
