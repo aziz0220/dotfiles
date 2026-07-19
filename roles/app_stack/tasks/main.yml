@@ -263,7 +263,9 @@
 - name: Install global npm CLI tools
   ansible.builtin.shell: |
     set -e
-    . "{{ user_home }}/.nvm/nvm.sh"
+    export HOME="{{ user_home }}"
+    export NVM_DIR="{{ user_home }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
     nvm use default >/dev/null
     npm install -g "{{ item }}"
   args:
