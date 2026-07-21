@@ -36,15 +36,15 @@ Provision any Ubuntu machine — WSL2, cloud VM, bare metal, or VM — with your
 - **Idempotent** — safe to run multiple times; only installs what's missing
 - **Tagged execution** — run only what you need: `./ansible-run dotfiles`, `./ansible-run node`, etc.
 - **Auto-detecting** — detects username, home, UID/GID, shell at runtime
-- **Cross-distro compatible** — tested on Ubuntu 22.04 and 24.04 in CI
-- **CI-verified** — every commit runs lint, validation, secret scan, and full provision on both LTS releases
+- **Cross-distro compatible** — full provisioning on Ubuntu 22.04/24.04 plus Ubuntu 26.04 WSL home-restore coverage
+- **CI-verified** — every commit runs lint, validation, secret scan, multi-LTS provisioning, and a 26.04 regression
 - **Portable** — works on WSL2, cloud VMs (AWS, GCP, Azure), bare metal, VMware/VirtualBox
 
 ## Quick Start
 
 ### Prerequisites
 
-- Ubuntu 22.04+ (Jammy, Noble) — on WSL2, cloud VM, or bare metal
+- Ubuntu 22.04+ (Jammy, Noble, Resolute) — on WSL2, cloud VM, or bare metal
 - `curl` and `sudo` access
 
 ### One-command setup
@@ -61,20 +61,9 @@ The script will:
 4. Run the full provisioning playbook
 5. Restore your dotfiles, secrets, packages, tools, and repos
 
-### Authenticated access (for private repos and GitHub auth)
+### Authenticated access
 
-```bash
-# Option A: SSH key (temporary, real one gets restored)
-ssh-keygen -t ed25519 -f ~/.ssh/github_setup -N ""
-cat ~/.ssh/github_setup.pub
-# Add key at https://github.com/settings/keys
-
-# Option B: Personal access token
-export GITHUB_TOKEN=ghp_...
-
-# Then run the installer
-bash <(curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install)
-```
+The bootstrap repository is public. Private repositories use the SSH keys restored from the encrypted vault before cloning, so no separate GitHub token is required when those keys have access. `GITHUB_TOKEN` remains optional for authenticated access to the bootstrap repository and is passed ephemerally rather than saved in the Git remote.
 
 ### Manual setup
 
@@ -249,8 +238,8 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 │   └── validate_setup.sh              # Post-provision validation
 │
 ├── test/
-│   ├── docker_test.sh                 # Docker-based provision test
-│   └── Dockerfile                     # (generated at runtime)
+│   ├── ansible_run_test.sh            # Orchestrator regression test
+│   └── docker_test.sh                 # Docker home-restore regression
 │
 ├── .editorconfig                      # Editor consistency
 ├── .pre-commit-config.yaml            # Pre-commit hook definitions
@@ -258,7 +247,7 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 ├── .yamllint                          # YAMLlint configuration
 │
 └── .github/
-    ├── workflows/ci.yml               # CI pipeline (multi-distro: 22.04 + 24.04)
+    ├── workflows/ci.yml               # CI pipeline (22.04, 24.04, and 26.04)
     ├── dependabot.yml
     ├── ISSUE_TEMPLATE/
     └── PULL_REQUEST_TEMPLATE.md
@@ -274,7 +263,7 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 | `BOOTSTRAP_HOME_DIR` | No | Override bootstrap home directory (default: `.bootstrap/home`) |
 | `ENCRYPTED_HOME_BUNDLE` | No | Override vault file path |
 | `ANSIBLE_PLAYBOOK_FILE` | No | Override playbook file (default: `local.yml`) |
-| `GITHUB_TOKEN` | For GH auth | GitHub personal access token |
+| `GITHUB_TOKEN` | No | Optional ephemeral authentication for the bootstrap repository |
 | `OLDPASS` | Vault rotation | Current vault password (when using `rotate_vault_password.sh`) |
 | `NEWPASS` | Vault rotation | New vault password (when using `rotate_vault_password.sh`) |
 
@@ -303,9 +292,10 @@ make setup-precommit   # optional: automatic linting on commit
 ```bash
 make docker-test              # Ubuntu 24.04
 make docker-test DISTRO=22.04 # Ubuntu 22.04
+make docker-test DISTRO=26.04 # Ubuntu 26.04
 ```
 
-This builds a clean container, runs the full playbook, and verifies components — the same way CI does.
+This builds a clean container and verifies home restoration over Ubuntu's pre-existing skeleton files. Full 22.04 and 24.04 provisioning remains covered by CI.
 
 ### Rotate vault password
 
@@ -340,7 +330,7 @@ See [SECURITY.md](SECURITY.md) for the security policy.
 - Only the encrypted vault (`vault/home-secrets.tar.gz.aes256`) is committed
 - Vault uses AES-256-CBC with PBKDF2 key derivation
 - Rotate the vault password at any time: `bash scripts/rotate_vault_password.sh`
-- CI tests provisioning against **both Ubuntu 22.04 and 24.04** for cross-release compatibility
+- CI runs full provisioning on **Ubuntu 22.04 and 24.04**, plus an **Ubuntu 26.04** home-restore regression
 
 ## License
 

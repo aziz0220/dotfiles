@@ -1,0 +1,4 @@
+.git
+.bootstrap
+.output.txt
+vault/home-secrets.tar.gz.aes256

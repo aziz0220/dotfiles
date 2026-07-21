@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ansible-run` script improved with better error messages and environment detection
 - CI workflow modernized with `actions/setup-python` and `ansible-lint` action
 - Documentation restructured for clarity
+- Home restore now syncs over pre-existing Ubuntu skeleton files and validates restored state
+- Custom tools install as the target user and are required to pass post-install verification
+- WSL services use distro-specific SSH/ttyd ports and Tailscale userspace networking
+- Ubuntu 26.04 compatibility treats obsolete snapshot libraries as release-inapplicable
+
+### Fixed
+- Forward arbitrary Ansible arguments such as `--ask-become-pass` instead of treating them as tags
+- Surface failed repository clones instead of reporting a successful playbook
+- Install current Junie, Copilot, clangd, Rust, Cloudflare, Tailscale, and Stripe CLIs
+- Keep user-scoped tools discoverable from clean login shells with portable `$HOME`-relative paths
 
 ## [0.1.0] — 2026-03-01
 

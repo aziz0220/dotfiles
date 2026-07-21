@@ -13,6 +13,7 @@ failures=0
 warnings=0
 
 pass() { printf '[PASS] %s\n' "$1"; }
+info() { printf '[INFO] %s\n' "$1"; }
 warn() { printf '[WARN] %s\n' "$1"; warnings=$((warnings + 1)); }
 fail() { printf '[FAIL] %s\n' "$1"; failures=$((failures + 1)); }
 
@@ -67,20 +68,19 @@ while IFS= read -r pkg; do
 done < "$TMP_DIR/missing-packages.txt"
 
 expected_pkg_count="$(wc -l < "$TMP_DIR/expected-packages.txt")"
-missing_pkg_count="$(wc -l < "$TMP_DIR/missing-packages.txt")"
 installable_missing_count="$(wc -l < "$TMP_DIR/missing-packages-installable.txt")"
 unavailable_missing_count="$(wc -l < "$TMP_DIR/missing-packages-unavailable.txt")"
 
-if [ "$missing_pkg_count" -eq 0 ]; then
-  pass "normalized package parity: expected=$expected_pkg_count missing=0"
+if [ "$installable_missing_count" -eq 0 ]; then
+  pass "available package parity: expected=$expected_pkg_count installable-missing=0"
 else
-  warn "normalized package parity: expected=$expected_pkg_count missing=$missing_pkg_count (installable=$installable_missing_count unavailable=$unavailable_missing_count)"
-  if [ "$installable_missing_count" -gt 0 ]; then
-    warn "installable but missing package sample: $(head -n 20 "$TMP_DIR/missing-packages-installable.txt" | tr '\n' ' ')"
-  fi
-  if [ "$unavailable_missing_count" -gt 0 ]; then
-    warn "unavailable package sample: $(head -n 20 "$TMP_DIR/missing-packages-unavailable.txt" | tr '\n' ' ')"
-  fi
+  fail "available package parity: expected=$expected_pkg_count installable-missing=$installable_missing_count"
+  fail "installable but missing package sample: $(head -n 20 "$TMP_DIR/missing-packages-installable.txt" | tr '\n' ' ')"
+fi
+
+if [ "$unavailable_missing_count" -gt 0 ]; then
+  info "release-inapplicable snapshot packages: $unavailable_missing_count"
+  info "release-inapplicable sample: $(head -n 20 "$TMP_DIR/missing-packages-unavailable.txt" | tr '\n' ' ')"
 fi
 
 echo
@@ -122,6 +122,79 @@ done < "$TMP_DIR/expected-repos.txt"
 
 if [ "$repo_missing_paths" -eq 0 ] && [ "$repo_missing_git" -eq 0 ]; then
   pass "repository parity OK"
+fi
+
+echo
+echo "== Custom Tool Parity =="
+
+export HOME="$USER_HOME"
+export PATH="$USER_HOME/.cargo/bin:$USER_HOME/.local/bin:$USER_HOME/.npm-global/bin:$PATH"
+if [ -s "$USER_HOME/.nvm/nvm.sh" ]; then
+  export NVM_DIR="$USER_HOME/.nvm"
+  # shellcheck source=/dev/null
+  . "$NVM_DIR/nvm.sh"
+  nvm use default >/dev/null
+fi
+
+custom_tool_missing=0
+while IFS=$'\t' read -r tool_name check_cmd; do
+  [ -z "$tool_name" ] && continue
+  if bash -c "$check_cmd" >/dev/null 2>&1; then
+    pass "custom tool available: $tool_name"
+  else
+    fail "custom tool unavailable: $tool_name"
+    custom_tool_missing=$((custom_tool_missing + 1))
+  fi
+done < <(
+  python3 - "$PLAYBOOK_DIR/vars/custom-tools.yml" <<'PY'
+import sys
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as stream:
+    data = yaml.safe_load(stream) or {}
+
+for tool in data.get("custom_tools", []):
+    print(f"{tool['name']}\t{tool['check_cmd']}")
+PY
+)
+
+if [ "$custom_tool_missing" -eq 0 ]; then
+  pass "custom tool parity OK"
+fi
+
+echo
+echo "== Login Shell Parity =="
+
+login_shell="$(getent passwd "$USER_NAME" | awk -F: '{print $7}')"
+login_shell_missing=0
+if [ ! -x "$login_shell" ]; then
+  fail "target login shell unavailable: ${login_shell:-unknown}"
+else
+  for tool_name in cargo junie copilot; do
+    login_env=(
+      env -i
+      "HOME=$USER_HOME"
+      "USER=$USER_NAME"
+      "LOGNAME=$USER_NAME"
+      "SHELL=$login_shell"
+      TERM=dumb
+      PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    )
+    if [ "$(id -u)" -eq 0 ]; then
+      login_env=(sudo -u "$USER_NAME" "${login_env[@]}")
+    fi
+
+    if "${login_env[@]}" "$login_shell" -lic "command -v $tool_name" >/dev/null 2>&1; then
+      pass "login shell tool available: $tool_name"
+    else
+      fail "login shell tool unavailable: $tool_name"
+      login_shell_missing=$((login_shell_missing + 1))
+    fi
+  done
+fi
+
+if [ "$login_shell_missing" -eq 0 ] && [ -x "$login_shell" ]; then
+  pass "login shell parity OK"
 fi
 
 echo

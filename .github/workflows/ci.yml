@@ -37,13 +37,13 @@ jobs:
         run: yamllint --strict .
 
       - name: Shellcheck
-        run: shellcheck scripts/*.sh install ansible-run bin/dotfiles
+        run: shellcheck scripts/*.sh test/*.sh install ansible-run bin/dotfiles
 
       - name: Ansible syntax check
         run: ansible-playbook --syntax-check -i inventory.ini local.yml
 
       - name: Ansible lint
-        run: ansible-lint local.yml
+        run: PYTHONWARNINGS=ignore::DeprecationWarning ansible-lint local.yml
 
   validate:
     name: Validate
@@ -127,7 +127,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ansible git curl tar unzip ca-certificates openssl
+          sudo apt-get install -y -qq ansible git curl tar unzip ca-certificates openssl rsync
 
       - name: Create test user
         run: |
@@ -147,6 +147,7 @@ jobs:
         run: |
           if [ -f scripts/decrypt_home_bundle.sh ]; then
             bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
+            sudo chown -R testuser:testuser .bootstrap/home
             echo "Vault decrypted"
           else
             echo "No decrypt script found, using skeleton"
@@ -173,28 +174,27 @@ jobs:
 
       - name: Verify installed components
         run: |
-          set -x
-          echo "=== System ==="
-          cat /etc/os-release | head -2
-          uname -r
-          echo "=== Shell ==="
-          sudo -u testuser zsh --version || echo "zsh not installed"
-          echo "=== Git ==="
+          set -euo pipefail
+          sudo -u testuser zsh --version
           git --version
-          echo "=== Curl ==="
           curl --version | head -1
-          echo "=== Node ==="
-          sudo -u testuser bash -c 'export HOME=/home/testuser && source ~/.nvm/nvm.sh && node --version && npm --version' || echo "Node not installed"
-          echo "=== Neovim ==="
-          sudo -u testuser nvim --version | head -1 || echo "nvim not installed"
-          echo "=== Tmux ==="
-          tmux -V || echo "tmux not installed"
-          echo "=== GitHub CLI ==="
-          gh --version | head -1 || echo "gh not installed"
-          echo "=== Custom tools ==="
-          for t in claude opencode kind; do
-            echo -n "$t: "
-            sudo -u testuser bash -c "command -v $t" || echo "(not installed)"
-          done
-          echo "=== Dotfiles ==="
-          ls -la /home/testuser/ 2>/dev/null | head -10
+          sudo -u testuser env HOME=/home/testuser bash -c 'source ~/.nvm/nvm.sh && node --version && npm --version'
+          sudo -u testuser nvim --version | head -1
+          tmux -V
+          gh --version | head -1
+          sudo -u testuser env \
+            HOME=/home/testuser \
+            PATH=/home/testuser/.cargo/bin:/home/testuser/.local/bin:/home/testuser/.npm-global/bin:/usr/local/bin:/usr/bin:/bin \
+            bash -c 'source ~/.nvm/nvm.sh && for tool in cargo claude opencode junie copilot kind docker cloudflared tailscale stripe clangd; do command -v "$tool"; done'
+          test -s /home/testuser/.gitconfig
+          test -f /home/testuser/.ssh/authorized_keys
+
+  provision-26:
+    name: Home restore (ubuntu-26.04)
+    runs-on: ubuntu-latest
+    needs: [lint, validate, security]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Ubuntu 26.04 home restore
+        run: bash test/docker_test.sh 26.04

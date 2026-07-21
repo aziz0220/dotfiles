@@ -1,5 +1,8 @@
 extends: default
 
+ignore: |
+  .bootstrap/
+
 rules:
   line-length:
     max: 200
@@ -11,3 +14,9 @@ rules:
   brackets:
     min-spaces-inside: 0
     max-spaces-inside: 0
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: false
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true

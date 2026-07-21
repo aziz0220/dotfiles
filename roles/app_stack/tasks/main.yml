@@ -261,6 +261,20 @@
   become_user: "{{ user_name }}"
   when: node_versions | length > 0
 
+- name: Resolve default Node binary directory
+  ansible.builtin.shell: |
+    set -e
+    export HOME="{{ user_home }}"
+    export NVM_DIR="{{ user_home }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
+    dirname "$(nvm which default)"
+  args:
+    executable: /bin/bash
+  register: _default_node_bin
+  changed_when: false
+  become_user: "{{ user_name }}"
+  when: node_versions | length > 0
+
 - name: Install global npm CLI tools
   ansible.builtin.shell: |
     set -e
@@ -528,6 +542,11 @@
   register: _custom_tool_probes
   changed_when: false
   failed_when: false
+  become: true
+  become_user: "{{ user_name }}"
+  environment:
+    HOME: "{{ user_home }}"
+    PATH: "{{ _default_node_bin.stdout | default('') }}:{{ user_home }}/.cargo/bin:{{ user_home }}/.local/bin:{{ user_home }}/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"
 
 - name: Install missing custom tools
   ansible.builtin.shell: "{{ item.item.install_cmd }}"
@@ -537,32 +556,95 @@
   register: _custom_tool_installs
   changed_when: true
   failed_when: false
-  become: "{{ item.item.become | default(false) }}"
-  become_user: "{{ item.item.become_user | default(omit) }}"
+  become: true
+  become_user: "{{ omit if item.item.become | default(false) else user_name }}"
+  environment:
+    HOME: "{{ user_home }}"
+    PATH: "{{ _default_node_bin.stdout | default('') }}:{{ user_home }}/.cargo/bin:{{ user_home }}/.local/bin:{{ user_home }}/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"
   when:
     - item.rc is defined
     - item.rc != 0
 
-- name: Collect failed custom tool installs
+- name: Verify custom tools after installation
+  ansible.builtin.shell: "{{ item.check_cmd }}"
+  args:
+    executable: /bin/bash
+  loop: "{{ custom_tools | default([], true) }}"
+  register: _custom_tool_verification
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: "{{ user_name }}"
+  environment:
+    HOME: "{{ user_home }}"
+    PATH: "{{ _default_node_bin.stdout | default('') }}:{{ user_home }}/.cargo/bin:{{ user_home }}/.local/bin:{{ user_home }}/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"
+
+- name: Collect missing required custom tools
   ansible.builtin.set_fact:
-    _failed_custom_tool_installs: >-
+    _missing_required_custom_tools: >-
       {{
-        _custom_tool_installs.results
+        _custom_tool_verification.results
         | selectattr('rc', 'defined')
         | rejectattr('rc', 'equalto', 0)
-        | map(attribute='item.item.name')
+        | map(attribute='item.name')
         | list
       }}
   when:
-    - _custom_tool_installs is defined
-    - _custom_tool_installs.results is defined
+    - _custom_tool_verification is defined
+    - _custom_tool_verification.results is defined
 
-- name: Show custom tools that failed to install (non-fatal)
-  ansible.builtin.debug:
-    msg: "Custom tools that failed to install (install manually): {{ _failed_custom_tool_installs | join(', ') }}"
+- name: Fail when required custom tools are missing
+  ansible.builtin.fail:
+    msg: "Required custom tools are unavailable after installation: {{ _missing_required_custom_tools | join(', ') }}"
   when:
-    - _failed_custom_tool_installs is defined
-    - _failed_custom_tool_installs | length > 0
+    - _missing_required_custom_tools is defined
+    - _missing_required_custom_tools | length > 0
+
+- name: Ensure the WSL SSH socket uses its distro-specific port
+  ansible.builtin.systemd:
+    name: ssh.socket
+    enabled: true
+    state: "{{ 'restarted' if _wsl_ssh_socket_config.changed else 'started' }}"
+  when: _is_wsl | default(false)
+
+- name: Configure Tailscale userspace networking under WSL
+  ansible.builtin.lineinfile:
+    path: /etc/default/tailscaled
+    regexp: '^FLAGS='
+    line: 'FLAGS="--tun=userspace-networking"'
+  register: _tailscale_wsl_config
+  when: _is_wsl | default(false)
+
+- name: Ensure Tailscale is running under WSL
+  ansible.builtin.systemd:
+    name: tailscaled.service
+    enabled: true
+    state: "{{ 'restarted' if _tailscale_wsl_config.changed else 'started' }}"
+  when: _is_wsl | default(false)
+
+- name: Check whether ttyd is installed
+  ansible.builtin.stat:
+    path: /usr/bin/ttyd
+  register: _ttyd_binary
+
+- name: Avoid shared WSL ttyd port conflicts
+  ansible.builtin.lineinfile:
+    path: /etc/default/ttyd
+    regexp: '^TTYD_OPTIONS='
+    line: 'TTYD_OPTIONS="-W -i lo -p {{ wsl_ttyd_port }} -O login"'
+  register: _ttyd_wsl_config
+  when:
+    - _is_wsl | default(false)
+    - _ttyd_binary.stat.exists
+
+- name: Ensure ttyd is running under WSL
+  ansible.builtin.systemd:
+    name: ttyd.service
+    enabled: true
+    state: "{{ 'restarted' if _ttyd_wsl_config.changed else 'started' }}"
+  when:
+    - _is_wsl | default(false)
+    - _ttyd_binary.stat.exists
 
 - name: Check if jenv checkout already exists
   ansible.builtin.stat:

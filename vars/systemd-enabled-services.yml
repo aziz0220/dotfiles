@@ -1,3 +1,6 @@
+wsl_ssh_port: "{{ 2200 + (ansible_facts.distribution_major_version | int) }}"
+wsl_ttyd_port: "{{ 7600 + (ansible_facts.distribution_major_version | int) }}"
+
 systemd_services:
   - apparmor.service
   - apt-daily-upgrade.timer

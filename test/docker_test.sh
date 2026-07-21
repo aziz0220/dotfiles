@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# docker_test.sh — Run full provisioning inside a Docker container
+# docker_test.sh — Verify home restoration inside a Docker container
 #
 # Usage:
 #   ./test/docker_test.sh                    # Test Ubuntu 24.04 (default)
 #   ./test/docker_test.sh 22.04              # Test Ubuntu 22.04
 #   ./test/docker_test.sh 24.04              # Test Ubuntu 24.04
+#   ./test/docker_test.sh 26.04              # Test Ubuntu 26.04
 #
-# This builds a clean Ubuntu container, installs Ansible, and runs the
-# full playbook against it — the same way CI does, but locally.
+# This builds a clean Ubuntu container and verifies that the home role
+# restores files even when Ubuntu has already created skeleton dotfiles.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -25,13 +26,12 @@ err()  { printf "${RED}✗${NC} %s\n" "$1" >&2; }
 header() { printf "\n${BOLD}%s${NC}\n" "$1"; }
 
 cleanup() {
-  if docker ps -q --filter "name=$CONTAINER_NAME" 2>/dev/null | grep -q .; then
+  if docker ps -aq --filter "name=^${CONTAINER_NAME}$" 2>/dev/null | grep -q .; then
     info "Cleaning up container..."
-    docker kill "$CONTAINER_NAME" 2>/dev/null || true
-    docker rm "$CONTAINER_NAME" 2>/dev/null || true
+    docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
   fi
+  rm -rf "$TEST_DIR"
 }
-trap cleanup EXIT
 
 # ---- Pre-flight checks ----
 header "Pre-flight checks"
@@ -49,6 +49,7 @@ info "Repo: $REPO_DIR"
 header "Building test environment"
 
 TEST_DIR="$(mktemp -d)"
+trap cleanup EXIT
 cat > "$TEST_DIR/Dockerfile" <<DOCKERFILE
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -64,12 +65,22 @@ RUN apt-get update -qq && \
       unzip \
       ca-certificates \
       openssl \
+      rsync \
       sudo \
+      zsh \
     && rm -rf /var/lib/apt/lists/*
 
 # Create test user matching CI
 RUN useradd -m -s /bin/bash -u 2000 testuser && \
     echo 'testuser ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/testuser
+
+# User-scoped tools that must remain discoverable after restoring a captured home.
+RUN mkdir -p /home/testuser/.cargo/bin /home/testuser/.local/bin && \
+    printf '#!/usr/bin/env sh\nexit 0\n' > /home/testuser/.cargo/bin/cargo && \
+    printf '#!/usr/bin/env sh\nexit 0\n' > /home/testuser/.local/bin/junie && \
+    printf '#!/usr/bin/env sh\nexit 0\n' > /home/testuser/.local/bin/copilot && \
+    chmod +x /home/testuser/.cargo/bin/cargo /home/testuser/.local/bin/junie /home/testuser/.local/bin/copilot && \
+    chown -R testuser:testuser /home/testuser/.cargo /home/testuser/.local
 
 # Ansible tmp dir
 RUN mkdir -p /home/testuser/.ansible/tmp && \
@@ -83,7 +94,10 @@ RUN chmod -R a+rX /setup
 # Create a skeleton bootstrap home
 RUN mkdir -p /setup/.bootstrap/home/.ssh && \
     touch /setup/.bootstrap/home/.ssh/authorized_keys && \
-    echo "test" > /setup/.bootstrap/home/.zshrc && \
+    printf '%s\n' '. "\$HOME/.local/bin/env"' > /setup/.bootstrap/home/.zshrc && \
+    printf '%s\n' 'export PATH="/home/sourceuser/.local/bin:/home/sourceuser/.cargo/bin:\$PATH"' > /setup/.bootstrap/home/.local-bin-env && \
+    mkdir -p /setup/.bootstrap/home/.local/bin && \
+    mv /setup/.bootstrap/home/.local-bin-env /setup/.bootstrap/home/.local/bin/env && \
     echo "test" > /setup/.bootstrap/home/.gitconfig
 DOCKERFILE
 
@@ -99,41 +113,34 @@ docker run --name "$CONTAINER_NAME" \
   -e "CI=true" \
   "dotfiles-test:${UBUNTU_VERSION}" \
   bash -c "
-    set -e
+    set -euo pipefail
     ansible-playbook ${PLAYBOOK} \
       -i inventory.ini \
       -e 'user_name=testuser' \
       -e 'user_home=/home/testuser' \
       -e 'user_uid=2000' \
       -e 'user_gid=2000' \
-      -e 'user_shell=/bin/bash'
+      -e 'user_shell=/usr/bin/zsh' \
+      -e '{\"repositories\": []}' \
+      --tags home
+
+    test -f /home/testuser/.gitconfig
+    test \"\$(cat /home/testuser/.gitconfig)\" = test
+    test -f /home/testuser/.ssh/authorized_keys
+    test -f /home/testuser/.zshrc
+    sudo -u testuser env \
+      HOME=/home/testuser \
+      USER=testuser \
+      LOGNAME=testuser \
+      SHELL=/usr/bin/zsh \
+      PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+      zsh -lic 'command -v cargo && command -v junie && command -v copilot'
   "
 log "Playbook completed"
 
 # ---- Verify ----
 header "Verifying installation"
-
-docker run --name "${CONTAINER_NAME}-verify" \
-  -e "HOME=/home/testuser" \
-  "dotfiles-test:${UBUNTU_VERSION}" \
-  bash -c "
-    set -x
-    echo '=== System ==='
-    cat /etc/os-release | head -2
-    echo '=== Shell ==='
-    su - testuser -c 'zsh --version' 2>/dev/null || echo 'zsh not installed'
-    echo '=== Git ==='
-    git --version
-    echo '=== Curl ==='
-    curl --version | head -1
-    echo '=== GitHub CLI ==='
-    gh --version | head -1 || echo 'gh not installed'
-    echo '=== Dotfiles ==='
-    ls -la /home/testuser/ 2>/dev/null | head -10
-  " || true
-
-# Clean up verify container
-docker rm "${CONTAINER_NAME}-verify" 2>/dev/null || true
+log "Bootstrap home was restored over a pre-existing Ubuntu home"
 
 header "Results"
 log "Ubuntu ${UBUNTU_VERSION} test completed"

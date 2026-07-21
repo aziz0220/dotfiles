@@ -87,6 +87,7 @@ bash scripts/rotate_vault_password.sh
 ```bash
 make docker-test          # Ubuntu 24.04
 make docker-test DISTRO=22.04  # Ubuntu 22.04
+make docker-test DISTRO=26.04  # Ubuntu 26.04
 ```
 
 ## CI Pipeline
@@ -97,6 +98,7 @@ make docker-test DISTRO=22.04  # Ubuntu 22.04
 | Validate | YAML syntax, required files, gitignore check, vault presence | ubuntu-latest |
 | Secret scan | Check for tracked credentials outside vault | ubuntu-latest |
 | Full provision | Full playbook run on clean system | ubuntu-22.04 + ubuntu-24.04 |
+| Home restore | Restore over a clean distro home | ubuntu-26.04 container |
 
 ## Security
 

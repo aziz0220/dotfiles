@@ -11,7 +11,7 @@
 
 - name: Check whether snapshot apt sources match target release
   ansible.builtin.set_fact:
-    _snapshot_sources_matches_release: "{{ _snapshot_sources_content is search('(?m)^deb\\s+\\S+\\s+' ~ ansible_distribution_release ~ '(?:\\s|-)') }}"
+    _snapshot_sources_matches_release: "{{ _snapshot_sources_content is search('(?m)^deb\\s+\\S+\\s+' ~ ansible_facts.distribution_release ~ '(?:\\s|-)') }}"
 
 - name: Check if deb822 ubuntu.sources exists on target
   ansible.builtin.stat:
@@ -22,7 +22,7 @@
   ansible.builtin.debug:
     msg: >-
       Skipping captured /etc/apt/sources.list because it does not match target release
-      (target={{ ansible_distribution_release }}). Using target release sources instead.
+      (target={{ ansible_facts.distribution_release }}). Using target release sources instead.
   when:
     - _snapshot_sources_content | length > 0
     - not _snapshot_sources_matches_release
@@ -76,6 +76,10 @@
     group: root
     mode: '0644'
 
+- name: Detect WSL
+  ansible.builtin.set_fact:
+    _is_wsl: "{{ 'microsoft' in (ansible_facts.kernel | lower) }}"
+
 - name: Restore WSL configuration
   ansible.builtin.copy:
     src: etc_wsl.conf
@@ -83,6 +87,36 @@
     owner: root
     group: root
     mode: '0644'
+  when: _is_wsl
+
+- name: Ensure WSL SSH socket override directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/ssh.socket.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: _is_wsl
+
+- name: Avoid shared WSL SSH port conflicts
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/ssh.socket.d/listen.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Socket]
+      ListenStream=
+      ListenStream={{ wsl_ssh_port }}
+  register: _wsl_ssh_socket_config
+  when: _is_wsl
+
+- name: Reload systemd after WSL socket configuration
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when:
+    - _is_wsl
+    - ansible_facts.service_mgr == 'systemd'
 
 - name: Ensure common system directories exist
   ansible.builtin.file:

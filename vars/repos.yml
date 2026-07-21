@@ -181,22 +181,22 @@ repositories:
       origin: "git@github.com:aziz0220/coderefactor-demo.git"
   - name: "Tipico---Multi-Agent-for-Code-Refactoring"
     path: "{{ user_home }}/Tipico---Multi-Agent-for-Code-Refactoring"
-    clone_from: "https://github.com/PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
+    clone_from: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
+      origin: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
   - name: "ai-usage"
     path: "{{ user_home }}/ai-usage"
-    clone_from: "https://github.com/aziz0220/ai-usage.git"
+    clone_from: "git@github.com:aziz0220/ai-usage.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/ai-usage.git"
+      origin: "git@github.com:aziz0220/ai-usage.git"
   - name: "reacted"
     path: "{{ user_home }}/reacted"
-    clone_from: "https://github.com/aziz0220/reacted.git"
+    clone_from: "git@github.com:aziz0220/reacted.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/reacted.git"
+      origin: "git@github.com:aziz0220/reacted.git"
   - name: "fem-kubernetes"
     path: "{{ user_home }}/fem-kubernetes"
     clone_from: "git@github.com:ALT-F4-LLC/fem-kubernetes.git"
@@ -205,31 +205,31 @@ repositories:
       origin: "git@github.com:ALT-F4-LLC/fem-kubernetes.git"
   - name: "profile"
     path: "{{ user_home }}/profile"
-    clone_from: "https://github.com/aziz0220/portfolio.git"
+    clone_from: "git@github.com:aziz0220/portfolio.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/portfolio.git"
+      origin: "git@github.com:aziz0220/portfolio.git"
   - name: "pricesTN"
     path: "{{ user_home }}/pricesTN"
-    clone_from: "https://github.com/aziz0220/pricesTN.git"
+    clone_from: "git@github.com:aziz0220/pricesTN.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/pricesTN.git"
+      origin: "git@github.com:aziz0220/pricesTN.git"
   - name: "thesis-defense"
     path: "{{ user_home }}/thesis-defense"
-    clone_from: "https://github.com/aziz0220/thesis-defense.git"
+    clone_from: "git@github.com:aziz0220/thesis-defense.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/thesis-defense.git"
+      origin: "git@github.com:aziz0220/thesis-defense.git"
   - name: "journey"
     path: "{{ user_home }}/journey"
-    clone_from: "https://github.com/aziz0220/journey.git"
+    clone_from: "git@github.com:aziz0220/journey.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/journey.git"
+      origin: "git@github.com:aziz0220/journey.git"
   - name: "disk-fix"
     path: "{{ user_home }}/disk-fix"
-    clone_from: "https://github.com/aziz0220/disk-fix.git"
+    clone_from: "git@github.com:aziz0220/disk-fix.git"
     clone_if_missing: true
     remotes:
-      origin: "https://github.com/aziz0220/disk-fix.git"
+      origin: "git@github.com:aziz0220/disk-fix.git"
