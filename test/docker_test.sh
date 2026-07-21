@@ -98,7 +98,9 @@ RUN mkdir -p /setup/.bootstrap/home/.ssh && \
     printf '%s\n' 'export PATH="/home/sourceuser/.local/bin:/home/sourceuser/.cargo/bin:\$PATH"' > /setup/.bootstrap/home/.local-bin-env && \
     mkdir -p /setup/.bootstrap/home/.local/bin && \
     mv /setup/.bootstrap/home/.local-bin-env /setup/.bootstrap/home/.local/bin/env && \
-    echo "test" > /setup/.bootstrap/home/.gitconfig
+    echo "test" > /setup/.bootstrap/home/.gitconfig && \
+    chown -R root:root /setup/.bootstrap && \
+    chmod 0700 /setup/.bootstrap /setup/.bootstrap/home
 DOCKERFILE
 
 info "Building Docker image for Ubuntu ${UBUNTU_VERSION}..."
@@ -114,6 +116,7 @@ docker run --name "$CONTAINER_NAME" \
   "dotfiles-test:${UBUNTU_VERSION}" \
   bash -c "
     set -euo pipefail
+    ! sudo -u testuser test -r /setup/.bootstrap/home/.gitconfig
     ansible-playbook ${PLAYBOOK} \
       -i inventory.ini \
       -e 'user_name=testuser' \
@@ -126,6 +129,7 @@ docker run --name "$CONTAINER_NAME" \
 
     test -f /home/testuser/.gitconfig
     test \"\$(cat /home/testuser/.gitconfig)\" = test
+    test \"\$(stat -c %U /home/testuser/.gitconfig)\" = testuser
     test -f /home/testuser/.ssh/authorized_keys
     test -f /home/testuser/.zshrc
     sudo -u testuser env \

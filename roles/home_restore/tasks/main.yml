@@ -59,8 +59,7 @@
       - rsync
       - -a
       - --itemize-changes
-      - --no-owner
-      - --no-group
+      - "--chown={{ user_name }}:{{ user_name }}"
       - --exclude=.nvm
       - --exclude=.cache
       - "{{ bootstrap_home_dir }}/"
@@ -68,7 +67,7 @@
   register: _home_restore_rsync
   changed_when: _home_restore_rsync.stdout | length > 0
   when: bootstrap_home_tree.stat.exists
-  become_user: "{{ user_name }}"
+  become: true
 
 - name: Ensure user-local bin directory exists
   ansible.builtin.file:
