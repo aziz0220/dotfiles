@@ -140,6 +140,8 @@ jobs:
           touch .bootstrap/home/.ssh/authorized_keys
           echo "test" > .bootstrap/home/.zshrc
           echo "test" > .bootstrap/home/.gitconfig
+          chmod a+rx "$GITHUB_WORKSPACE"
+          chmod -R a+rX "$GITHUB_WORKSPACE"
 
       - name: Decrypt vault
         env:
@@ -157,8 +159,6 @@ jobs:
         run: |
           sudo mkdir -p /home/testuser/.ansible/tmp
           sudo chmod 777 /home/testuser/.ansible /home/testuser/.ansible/tmp
-          chmod a+rx "$GITHUB_WORKSPACE"
-          chmod -R a+rX "$GITHUB_WORKSPACE"
 
       - name: Run full playbook
         env:
