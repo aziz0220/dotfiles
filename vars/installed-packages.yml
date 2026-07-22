@@ -45,7 +45,6 @@ packages:
   - ca-certificates-java
   - cloud-guest-utils
   - cloud-init
-  - cloudflared
   - cmake
   - cmake-data
   - cmdtest
@@ -1521,7 +1520,6 @@ packages:
   - ssh-import-id
   - ssl-cert
   - strace
-  - stripe
   - sudo
   - supermin
   - syslinux
@@ -1535,8 +1533,6 @@ packages:
   - systemd-timesyncd
   - sysvinit-utils
   - t1utils
-  - tailscale
-  - tailscale-archive-keyring
   - tar
   - tcl
   - tcl8.6

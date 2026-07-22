@@ -10,17 +10,18 @@ default:
 # Install development dependencies
 setup:
     sudo apt-get update -qq
-    sudo apt-get install -y -qq shellcheck ansible yamllint
-    pip install ansible-lint 2>/dev/null || true
+    sudo apt-get install -y -qq shellcheck ansible yamllint rsync
+    pip install ansible-lint
     @echo "✓ Dev dependencies installed"
 
 # Run all linters
 lint:
     #!/usr/bin/env bash
     echo "→ YAML lint"; yamllint --strict .
-    echo "→ Shellcheck"; shellcheck scripts/*.sh install ansible-run bin/dotfiles
+    echo "→ Shellcheck"; shellcheck scripts/*.sh test/*.sh install ansible-run bin/dotfiles
     echo "→ Ansible syntax check"; ansible-playbook --syntax-check -i inventory.ini local.yml
-    echo "→ Ansible lint"; ansible-lint local.yml || true
+    echo "→ Ansible lint"; PYTHONWARNINGS=ignore::DeprecationWarning ansible-lint local.yml
+    echo "→ Regression tests"; bash test/ansible_run_test.sh
     echo "✓ All lints passed"
 
 # Validate repo structure and data  

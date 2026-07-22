@@ -55,10 +55,63 @@
 
 - name: Copy bootstrap home tree to target home
   ansible.builtin.command:
-    cmd: rsync -a --no-owner --no-group --exclude=.nvm --exclude=.cache {{ bootstrap_home_dir | quote }}/ {{ user_home | quote }}/
-    creates: "{{ user_home }}/.bashrc"
+    argv:
+      - rsync
+      - -a
+      - --itemize-changes
+      - "--chown={{ user_name }}:{{ user_name }}"
+      - --exclude=.nvm
+      - --exclude=.cache
+      - "{{ bootstrap_home_dir }}/"
+      - "{{ user_home }}/"
+  register: _home_restore_rsync
+  changed_when: _home_restore_rsync.stdout | length > 0
   when: bootstrap_home_tree.stat.exists
-  become_user: "{{ user_name }}"
+  become: true
+
+- name: Ensure user-local bin directory exists
+  ansible.builtin.file:
+    path: "{{ user_home }}/.local/bin"
+    state: directory
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: "0755"
+
+- name: Write portable user tool environment
+  ansible.builtin.copy:
+    dest: "{{ user_home }}/.local/bin/env"
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: "0644"
+    content: |
+      # Managed by Ansible. Source this file from shell startup.
+      for user_bin_dir in \
+        "$HOME/go/bin" \
+        "$HOME/.npm-global/bin" \
+        "$HOME/.cargo/bin" \
+        "$HOME/.opencode/bin" \
+        "$HOME/.local/bin"
+      do
+        case ":${PATH:-}:" in
+          *":${user_bin_dir}:"*) ;;
+          *) PATH="${user_bin_dir}${PATH:+:${PATH}}" ;;
+        esac
+      done
+      export PATH
+      unset user_bin_dir
+
+- name: Load portable user tool environment from zsh
+  ansible.builtin.blockinfile:
+    path: "{{ user_home }}/.zshenv"
+    create: true
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED USER TOOL ENVIRONMENT"
+    block: |
+      if [ -r "$HOME/.local/bin/env" ]; then
+        . "$HOME/.local/bin/env"
+      fi
 
 - name: Restore SSH strict permissions
   ansible.builtin.stat:
@@ -140,6 +193,12 @@
     - repository_paths.results[repo_idx].stat.exists | default(false)
     - not (repository_git_metadata.results[repo_idx].stat.exists | default(false))
 
+- name: Refresh repository git metadata after cleanup
+  ansible.builtin.stat:
+    path: "{{ item.path }}/.git"
+  loop: "{{ repositories }}"
+  register: repository_git_metadata_after_cleanup
+
 - name: Clone missing repositories from remote URLs
   ansible.builtin.git:
     repo: "{{ item.clone_from }}"
@@ -153,29 +212,45 @@
   register: repository_clone_attempts
   become_user: "{{ user_name }}"
   failed_when: false
+  environment:
+    HOME: "{{ user_home }}"
+    GIT_SSH_COMMAND: ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new
+    GIT_TERMINAL_PROMPT: "0"
   when:
     - item.clone_if_missing | default(true)
     - item.clone_from | default('') | length > 0
-    - not (repository_git_metadata.results[repo_idx].stat.exists | default(false))
+    - not (repository_git_metadata_after_cleanup.results[repo_idx].stat.exists | default(false))
 
-- name: Collect repository clone failures
+- name: Verify required repository clones
+  ansible.builtin.stat:
+    path: "{{ item.path }}/.git"
+  loop: "{{ repositories }}"
+  register: repository_git_metadata_after_clone
+
+- name: Collect missing required repository clones
   ansible.builtin.set_fact:
-    _failed_repository_clones: >-
+    _missing_repository_clones: >-
       {{
-        repository_clone_attempts.results
-        | selectattr('failed', 'defined')
-        | selectattr('failed')
+        repository_git_metadata_after_clone.results
+        | rejectattr('stat.exists')
+        | selectattr('item.clone_if_missing', 'undefined')
+        | map(attribute='item.name')
+        | list
+        +
+        repository_git_metadata_after_clone.results
+        | rejectattr('stat.exists')
+        | selectattr('item.clone_if_missing', 'defined')
+        | selectattr('item.clone_if_missing')
         | map(attribute='item.name')
         | list
       }}
-  when: repository_clone_attempts is defined
 
 - name: Fail when required repository clones are missing
   ansible.builtin.fail:
-    msg: "Failed to clone repositories: {{ _failed_repository_clones | join(', ') }}. Verify Git credentials and SSH keys."
+    msg: "Failed to clone required repositories: {{ _missing_repository_clones | join(', ') }}. Verify Git credentials and SSH keys."
   when:
-    - _failed_repository_clones is defined
-    - _failed_repository_clones | length > 0
+    - _missing_repository_clones is defined
+    - _missing_repository_clones | length > 0
 
 - name: Probe local origin repositories for fallback clones
   ansible.builtin.command:

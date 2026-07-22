@@ -2,10 +2,17 @@
 set -euo pipefail
 
 PLAYBOOK="${ANSIBLE_PLAYBOOK_FILE:-local.yml}"
-TAG_SET="${1:-all}"
+TAG_SET="all"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 BOOTSTRAP_HOME_DIR="${BOOTSTRAP_HOME_DIR:-$REPO_DIR/.bootstrap/home}"
 ENCRYPTED_HOME_BUNDLE="${ENCRYPTED_HOME_BUNDLE:-$REPO_DIR/vault/home-secrets.tar.gz.aes256}"
+
+if [ "$#" -gt 0 ] && [[ "$1" != -* ]]; then
+  TAG_SET="$1"
+  shift
+fi
+
+ANSIBLE_EXTRA_ARGS=("$@")
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then
   echo "ERROR: ansible-playbook is not installed. Run ./install first." >&2
@@ -31,7 +38,8 @@ CURRENT_USER="$(whoami)"
 CURRENT_HOME="$HOME"
 CURRENT_UID="$(id -u)"
 CURRENT_GID="$(id -g)"
-CURRENT_SHELL="$(basename "$SHELL" 2>/dev/null || echo 'zsh')"
+CURRENT_SHELL="$(basename "${SHELL:-/bin/zsh}")"
+CURRENT_SHELL_PATH="$(command -v "$CURRENT_SHELL" 2>/dev/null || printf '/usr/bin/zsh')"
 
 ANSIBLE_CMD=(
   ansible-playbook "$PLAYBOOK"
@@ -39,16 +47,28 @@ ANSIBLE_CMD=(
   -e "user_home=$CURRENT_HOME"
   -e "user_uid=$CURRENT_UID"
   -e "user_gid=$CURRENT_GID"
-  -e "user_shell=$(which "$CURRENT_SHELL" 2>/dev/null || echo /usr/bin/zsh)"
+  -e "user_shell=$CURRENT_SHELL_PATH"
 )
 
 if [ "$TAG_SET" != "all" ]; then
   ANSIBLE_CMD+=(--tags "$TAG_SET")
 fi
 
+ANSIBLE_CMD+=("${ANSIBLE_EXTRA_ARGS[@]}")
+
 if [ "$(id -u)" -ne 0 ]; then
   if command -v sudo >/dev/null 2>&1; then
-    ANSIBLE_CMD=(sudo "${ANSIBLE_CMD[@]}")
+    ask_become_pass=false
+    for arg in "${ANSIBLE_EXTRA_ARGS[@]}"; do
+      if [ "$arg" = "-K" ] || [ "$arg" = "--ask-become-pass" ]; then
+        ask_become_pass=true
+        break
+      fi
+    done
+
+    if [ "$ask_become_pass" = false ]; then
+      sudo -v
+    fi
   else
     echo "ERROR: sudo is required for become tasks." >&2
     exit 1

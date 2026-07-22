@@ -10,15 +10,16 @@ help: ## Show this help
 
 setup: ## Install development dependencies
 	@sudo apt-get update -qq
-	@sudo apt-get install -y -qq shellcheck ansible yamllint
-	@pip install ansible-lint 2>/dev/null || true
+	@sudo apt-get install -y -qq shellcheck ansible yamllint rsync
+	@pip install ansible-lint
 	@echo "✓ Dev dependencies installed"
 
 lint: ## Run all linters
 	@echo "→ YAML lint"; yamllint --strict .
-	@echo "→ Shellcheck"; shellcheck scripts/*.sh install ansible-run bin/dotfiles
+	@echo "→ Shellcheck"; shellcheck scripts/*.sh test/*.sh install ansible-run bin/dotfiles
 	@echo "→ Ansible syntax check"; ansible-playbook --syntax-check -i inventory.ini local.yml
-	@echo "→ Ansible lint"; ansible-lint local.yml || true
+	@echo "→ Ansible lint"; PYTHONWARNINGS=ignore::DeprecationWarning ansible-lint local.yml
+	@echo "→ Regression tests"; bash test/ansible_run_test.sh
 	@echo "✓ All lints passed"
 
 validate: ## Validate repo structure and data

@@ -114,9 +114,12 @@ make docker-test
 
 # Test Ubuntu 22.04
 make docker-test DISTRO=22.04
+
+# Test Ubuntu 26.04
+make docker-test DISTRO=26.04
 ```
 
-This builds a Docker image, runs the full playbook, and verifies installed components — same as CI but on your machine.
+This builds a Docker image and verifies home restoration over a clean Ubuntu home. Full provisioning is covered by CI.
 
 ## Vault Password Rotation
 

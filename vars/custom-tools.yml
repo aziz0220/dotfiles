@@ -5,34 +5,54 @@ custom_tools:
     become: false
   - name: opencode
     check_cmd: "command -v opencode"
-    install_cmd: "npm install -g opencode-ai"
+    install_cmd: "curl -fsSL https://opencode.ai/install | bash"
     become: false
   - name: junie
     check_cmd: "command -v junie"
     install_cmd: "curl -fsSL https://junie.jetbrains.com/install.sh | bash"
     become: false
+  - name: rustup
+    check_cmd: "command -v cargo && test -f \"$HOME/.cargo/env\""
+    install_cmd: "curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal"
+    become: false
   - name: copilot
-    check_cmd: "gh copilot --version 2>/dev/null"
-    install_cmd: "gh extension install github/gh-copilot"
+    check_cmd: "command -v copilot"
+    install_cmd: "curl -fsSL https://gh.io/copilot-install | PREFIX=\"$HOME/.local\" bash"
     become: false
   - name: neovim
     check_cmd: "command -v nvim"
-    install_cmd: "sudo apt-get install -y neovim"
-    become: false
+    install_cmd: "apt-get install -y neovim"
+    become: true
   - name: clangd
     check_cmd: "command -v clangd"
-    install_cmd: "sudo apt-get install -y clangd-18 && sudo update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-18 100"
-    become: false
+    install_cmd: "apt-get install -y clangd"
+    become: true
   - name: kind
     check_cmd: "command -v kind"
     install_cmd: |
       curl -Lo /tmp/kind "https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64" &&
       chmod +x /tmp/kind &&
-      sudo mv /tmp/kind /usr/local/bin/kind
+      mv /tmp/kind /usr/local/bin/kind
     become: true
   - name: docker
     check_cmd: "command -v docker"
     install_cmd: |
       curl -fsSL https://get.docker.com | sh &&
-      sudo usermod -aG docker {{ user_name }}
+      usermod -aG docker {{ user_name }}
+    become: true
+  - name: cloudflared
+    check_cmd: "command -v cloudflared"
+    install_cmd: |
+      arch="$(dpkg --print-architecture)" &&
+      case "$arch" in amd64|arm64) ;; *) exit 1 ;; esac &&
+      curl -fsSL -o /tmp/cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}.deb" &&
+      apt-get install -y /tmp/cloudflared.deb
+    become: true
+  - name: tailscale
+    check_cmd: "command -v tailscale"
+    install_cmd: "curl -fsSL https://tailscale.com/install.sh | sh"
+    become: true
+  - name: stripe
+    check_cmd: "command -v stripe"
+    install_cmd: "bash {{ playbook_dir }}/scripts/install_stripe.sh"
     become: true

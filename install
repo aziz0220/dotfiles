@@ -49,6 +49,12 @@ esac
 REPO_URL="https://github.com/aziz0220/dotfiles.git"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/dotfiles}"
 ANSIBLE_TAGS="${ANSIBLE_TAGS:-all}"
+GIT_AUTH_ARGS=()
+
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  encoded_github_token="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
+  GIT_AUTH_ARGS=(-c "http.https://github.com/.extraheader=AUTHORIZATION: basic $encoded_github_token")
+fi
 
 # ---- Colors ---------------------------------------------------------------
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
@@ -114,20 +120,24 @@ esac
 # ---- Install dependencies -------------------------------------------------
 header "Installing dependencies"
 
-if ! command -v ansible-playbook >/dev/null 2>&1; then
-  info "Installing Ansible..."
+missing_dependency_packages=()
+
+command -v ansible-playbook >/dev/null 2>&1 || missing_dependency_packages+=(ansible)
+command -v git >/dev/null 2>&1 || missing_dependency_packages+=(git)
+command -v ssh >/dev/null 2>&1 || missing_dependency_packages+=(openssh-client)
+command -v rsync >/dev/null 2>&1 || missing_dependency_packages+=(rsync)
+command -v openssl >/dev/null 2>&1 || missing_dependency_packages+=(openssl)
+command -v tar >/dev/null 2>&1 || missing_dependency_packages+=(tar)
+
+if [ "${#missing_dependency_packages[@]}" -gt 0 ]; then
+  info "Installing bootstrap dependencies..."
   sudo apt-get update -qq
-  sudo apt-get install -y -qq ansible git openssh-client
-  log "Ansible $(ansible --version | head -1)"
-else
-  log "Ansible already installed: $(ansible --version | head -1)"
+  sudo apt-get install -y -qq "${missing_dependency_packages[@]}"
 fi
 
-if command -v git >/dev/null 2>&1; then
-  log "Git already installed: $(git --version)"
-else
-  sudo apt-get install -y -qq git
-fi
+log "Ansible $(ansible --version | head -1)"
+log "Git $(git --version)"
+log "Rsync $(rsync --version | head -1)"
 
 # ---- Clone / update repository -------------------------------------------
 header "Setting up repository"
@@ -135,18 +145,12 @@ header "Setting up repository"
 if [ -d "$INSTALL_DIR/.git" ]; then
   info "Updating existing clone at $INSTALL_DIR"
   cd "$INSTALL_DIR"
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    git remote set-url origin "https://${GITHUB_TOKEN}@github.com/aziz0220/dotfiles.git"
-  fi
-  git pull --ff-only
+  git remote set-url origin "$REPO_URL"
+  git "${GIT_AUTH_ARGS[@]}" pull --ff-only
   log "Repository updated"
 else
   info "Cloning into $INSTALL_DIR"
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    git clone "https://${GITHUB_TOKEN}@github.com/aziz0220/dotfiles.git" "$INSTALL_DIR"
-  else
-    git clone "$REPO_URL" "$INSTALL_DIR"
-  fi
+  git "${GIT_AUTH_ARGS[@]}" clone "$REPO_URL" "$INSTALL_DIR"
   log "Repository cloned"
 fi
 
@@ -198,7 +202,7 @@ header "Setup complete"
 echo
 log "Your environment is ready at ${INSTALL_DIR}"
 log "Run './ansible-run' anytime to re-provision"
-log "Run './Makefile lint' to validate changes"
+log "Run 'make lint' to validate changes"
 
 if [ -d ".bootstrap/home" ]; then
   log "Secrets restored to .bootstrap/home"
