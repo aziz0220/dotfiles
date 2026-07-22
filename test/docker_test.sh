@@ -75,12 +75,13 @@ RUN useradd -m -s /bin/bash -u 2000 testuser && \
     echo 'testuser ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/testuser
 
 # User-scoped tools that must remain discoverable after restoring a captured home.
-RUN mkdir -p /home/testuser/.cargo/bin /home/testuser/.local/bin && \
+RUN mkdir -p /home/testuser/.cargo/bin /home/testuser/.local/bin /home/testuser/.opencode/bin && \
     printf '#!/usr/bin/env sh\nexit 0\n' > /home/testuser/.cargo/bin/cargo && \
     printf '#!/usr/bin/env sh\nexit 0\n' > /home/testuser/.local/bin/junie && \
     printf '#!/usr/bin/env sh\nexit 0\n' > /home/testuser/.local/bin/copilot && \
-    chmod +x /home/testuser/.cargo/bin/cargo /home/testuser/.local/bin/junie /home/testuser/.local/bin/copilot && \
-    chown -R testuser:testuser /home/testuser/.cargo /home/testuser/.local
+    printf '#!/usr/bin/env sh\nexit 0\n' > /home/testuser/.opencode/bin/opencode && \
+    chmod +x /home/testuser/.cargo/bin/cargo /home/testuser/.local/bin/junie /home/testuser/.local/bin/copilot /home/testuser/.opencode/bin/opencode && \
+    chown -R testuser:testuser /home/testuser/.cargo /home/testuser/.local /home/testuser/.opencode
 
 # Ansible tmp dir
 RUN mkdir -p /home/testuser/.ansible/tmp && \
@@ -138,7 +139,7 @@ docker run --name "$CONTAINER_NAME" \
       LOGNAME=testuser \
       SHELL=/usr/bin/zsh \
       PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-      zsh -lic 'command -v cargo && command -v junie && command -v copilot'
+      zsh -lic 'command -v cargo && command -v junie && command -v copilot && command -v opencode'
   "
 log "Playbook completed"
 

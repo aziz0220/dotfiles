@@ -186,10 +186,10 @@ jobs:
           gh --version | head -1
           sudo -u testuser env \
             HOME=/home/testuser \
-            PATH=/home/testuser/.cargo/bin:/home/testuser/.local/bin:/home/testuser/.npm-global/bin:/usr/local/bin:/usr/bin:/bin \
+            PATH=/home/testuser/.cargo/bin:/home/testuser/.local/bin:/home/testuser/.opencode/bin:/home/testuser/.npm-global/bin:/usr/local/bin:/usr/bin:/bin \
             bash -c 'source ~/.nvm/nvm.sh && for tool in cargo claude opencode junie copilot kind docker cloudflared tailscale stripe clangd; do command -v "$tool"; done'
-          test -s /home/testuser/.gitconfig
-          test -f /home/testuser/.ssh/authorized_keys
+          sudo -u testuser test -s /home/testuser/.gitconfig
+          sudo -u testuser test -f /home/testuser/.ssh/authorized_keys
 
   provision-26:
     name: Home restore (ubuntu-26.04)

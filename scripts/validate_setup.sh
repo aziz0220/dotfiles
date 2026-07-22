@@ -128,7 +128,7 @@ echo
 echo "== Custom Tool Parity =="
 
 export HOME="$USER_HOME"
-export PATH="$USER_HOME/.cargo/bin:$USER_HOME/.local/bin:$USER_HOME/.npm-global/bin:$PATH"
+export PATH="$USER_HOME/.cargo/bin:$USER_HOME/.local/bin:$USER_HOME/.opencode/bin:$USER_HOME/.npm-global/bin:$PATH"
 if [ -s "$USER_HOME/.nvm/nvm.sh" ]; then
   export NVM_DIR="$USER_HOME/.nvm"
   # shellcheck source=/dev/null

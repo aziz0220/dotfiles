@@ -275,6 +275,24 @@
   become_user: "{{ user_name }}"
   when: node_versions | length > 0
 
+- name: Build custom tool search path
+  ansible.builtin.set_fact:
+    _custom_tool_path: >-
+      {{
+        [
+          _default_node_bin.stdout | default(''),
+          user_home ~ '/.cargo/bin',
+          user_home ~ '/.local/bin',
+          user_home ~ '/.opencode/bin',
+          user_home ~ '/.npm-global/bin',
+          '/usr/local/bin',
+          '/usr/bin',
+          '/bin'
+        ]
+        | reject('equalto', '')
+        | join(':')
+      }}
+
 - name: Install global npm CLI tools
   ansible.builtin.shell: |
     set -e
@@ -546,7 +564,7 @@
   become_user: "{{ user_name }}"
   environment:
     HOME: "{{ user_home }}"
-    PATH: "{{ _default_node_bin.stdout | default('') }}:{{ user_home }}/.cargo/bin:{{ user_home }}/.local/bin:{{ user_home }}/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"
+    PATH: "{{ _custom_tool_path }}"
 
 - name: Install missing custom tools
   ansible.builtin.shell: "{{ item.item.install_cmd }}"
@@ -560,7 +578,7 @@
   become_user: "{{ omit if item.item.become | default(false) else user_name }}"
   environment:
     HOME: "{{ user_home }}"
-    PATH: "{{ _default_node_bin.stdout | default('') }}:{{ user_home }}/.cargo/bin:{{ user_home }}/.local/bin:{{ user_home }}/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"
+    PATH: "{{ _custom_tool_path }}"
   when:
     - item.rc is defined
     - item.rc != 0
@@ -577,7 +595,7 @@
   become_user: "{{ user_name }}"
   environment:
     HOME: "{{ user_home }}"
-    PATH: "{{ _default_node_bin.stdout | default('') }}:{{ user_home }}/.cargo/bin:{{ user_home }}/.local/bin:{{ user_home }}/.npm-global/bin:/usr/local/bin:/usr/bin:/bin"
+    PATH: "{{ _custom_tool_path }}"
 
 - name: Collect missing required custom tools
   ansible.builtin.set_fact:

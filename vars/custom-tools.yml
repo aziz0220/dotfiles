@@ -5,7 +5,7 @@ custom_tools:
     become: false
   - name: opencode
     check_cmd: "command -v opencode"
-    install_cmd: "npm install -g opencode-ai"
+    install_cmd: "curl -fsSL https://opencode.ai/install | bash"
     become: false
   - name: junie
     check_cmd: "command -v junie"
