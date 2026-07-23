@@ -143,17 +143,17 @@ jobs:
           chmod a+rx "$GITHUB_WORKSPACE"
           chmod -R a+rX "$GITHUB_WORKSPACE"
 
-      - name: Decrypt vault
+      - name: Prepare bootstrap home
         env:
           SETUP_SECRETS_PASSWORD: ${{ secrets.SETUP_SECRETS_PASSWORD }}
         run: |
-          if [ -f scripts/decrypt_home_bundle.sh ]; then
+          if [ -n "${SETUP_SECRETS_PASSWORD:-}" ] && [ -f scripts/decrypt_home_bundle.sh ]; then
             bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
-            sudo chown -R testuser:testuser .bootstrap/home
             echo "Vault decrypted"
           else
-            echo "No decrypt script found, using skeleton"
+            echo "Vault secret unavailable; using non-secret skeleton"
           fi
+          sudo chown -R testuser:testuser .bootstrap/home
 
       - name: Prepare Ansible temp directories
         run: |
