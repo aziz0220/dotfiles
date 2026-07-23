@@ -150,8 +150,10 @@ jobs:
           if [ -n "${SETUP_SECRETS_PASSWORD:-}" ] && [ -f scripts/decrypt_home_bundle.sh ]; then
             bash scripts/decrypt_home_bundle.sh vault/home-secrets.tar.gz.aes256 .bootstrap/home SETUP_SECRETS_PASSWORD
             echo "Vault decrypted"
+            printf '{}\n' > "$RUNNER_TEMP/provision-vars.json"
           else
             echo "Vault secret unavailable; using non-secret skeleton"
+            printf '{"repositories": []}\n' > "$RUNNER_TEMP/provision-vars.json"
           fi
           sudo chown -R testuser:testuser .bootstrap/home
 
@@ -173,6 +175,7 @@ jobs:
           -e "user_uid=2000"
           -e "user_gid=2000"
           -e "user_shell=/bin/bash"
+          -e "@${RUNNER_TEMP}/provision-vars.json"
 
       - name: Verify installed components
         run: |
