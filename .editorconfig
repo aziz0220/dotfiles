@@ -11,6 +11,9 @@ insert_final_newline = true
 [*.{sh,bash}]
 indent_size = 2
 
+[*.ps1]
+indent_size = 4
+
 [*.md]
 trim_trailing_whitespace = false
 

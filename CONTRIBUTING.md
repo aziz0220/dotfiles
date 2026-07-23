@@ -70,6 +70,7 @@ After cloning, use the `bin/dotfiles` entry point for common operations:
 ## Code Style
 
 - **Shell scripts**: Follow [Google Shell Style Guide](https://google.github.io/styleguide/shellguide.html). Run `shellcheck` on all scripts.
+- **PowerShell**: Keep `scripts/wsl.ps1` compatible with Windows PowerShell 5.1 and cover lifecycle changes in `test/wsl_lifecycle_test.ps1`.
 - **YAML**: Use `yamllint --strict`. No trailing spaces, 2-space indentation.
 - **Ansible**: Follow [Ansible best practices](https://docs.ansible.com/ansible/latest/tips_tricks/ansible_tips_tricks.html). Use `ansible-lint`.
 - **Commit messages**: Use [Conventional Commits](https://www.conventionalcommits.org/):

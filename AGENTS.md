@@ -16,7 +16,7 @@ A declarative, portable workstation bootstrap. One command provisions any Ubuntu
 | Linting | yamllint, shellcheck, ansible-lint |
 | Testing | Docker (local + CI) |
 | Task runner | Makefile + justfile |
-| Scripting | Bash (strict mode: `set -euo pipefail`) |
+| Scripting | Bash (strict mode: `set -euo pipefail`) + Windows PowerShell 5.1+ |
 
 ## Architecture
 
@@ -42,6 +42,11 @@ Data sources:
 - Colors: `RED`, `GREEN`, `YELLOW`, `CYAN`, `BOLD`, `NC`
 - Functions: `log()`, `warn()`, `err()`, `info()`, `header()`
 - All scripts pass `shellcheck`
+
+### PowerShell
+- Windows-side WSL lifecycle lives in `scripts/wsl.ps1`
+- Keep compatibility with Windows PowerShell 5.1 and PowerShell 7+
+- Lifecycle behavior must remain covered by `test/wsl_lifecycle_test.ps1`
 
 ### Ansible
 - Single playbook: `local.yml`
@@ -81,6 +86,11 @@ Edit `.github/workflows/ci.yml`. If check names change, update branch protection
 ### Rotate vault password
 ```bash
 bash scripts/rotate_vault_password.sh
+```
+
+### Test the WSL lifecycle
+```bash
+make wsl-test
 ```
 
 ### Test with Docker

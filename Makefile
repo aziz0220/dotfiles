@@ -2,7 +2,7 @@
 # dotfiles — Development tasks
 # ---------------------------------------------------------------------------
 .PHONY: help setup lint validate check ci install provision clean \
-        docker-test pre-commit setup-precommit vault-rotate
+        docker-test wsl-test pre-commit setup-precommit vault-rotate
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -20,6 +20,7 @@ lint: ## Run all linters
 	@echo "→ Ansible syntax check"; ansible-playbook --syntax-check -i inventory.ini local.yml
 	@echo "→ Ansible lint"; PYTHONWARNINGS=ignore::DeprecationWarning ansible-lint local.yml
 	@echo "→ Regression tests"; bash test/ansible_run_test.sh
+	@echo "→ WSL lifecycle tests"; bash test/wsl_lifecycle_test.sh
 	@echo "✓ All lints passed"
 
 validate: ## Validate repo structure and data
@@ -32,7 +33,7 @@ validate: ## Validate repo structure and data
 	done; \
 	exit $$errors
 	@echo "→ Required files"; \
-	for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install Makefile bin/dotfiles; do \
+	for f in site.yml local.yml inventory.ini ansible.cfg ansible-run install Makefile bin/dotfiles scripts/wsl.ps1 test/wsl_lifecycle_test.ps1; do \
 		test -f "$$f" && echo "  OK: $$f" || { echo "  MISSING: $$f"; exit 1; }; \
 	done; \
 	for role in system_setup home_restore app_stack; do \
@@ -61,6 +62,9 @@ provision-%: ## Run ansible provisioner with specific tags (e.g. provision-dotfi
 
 docker-test: ## Test provisioning in Docker (usage: make docker-test DISTRO=22.04)
 	@bash test/docker_test.sh $(DISTRO)
+
+wsl-test: ## Test Windows-side WSL lifecycle orchestration
+	@bash test/wsl_lifecycle_test.sh
 
 setup-precommit: ## Install pre-commit hooks (requires pip)
 	@pip install pre-commit 2>/dev/null || true

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Professional README with badges, architecture diagram, and documentation
 - One-command bootstrap via `bash <(curl -fsSL ...)` — auto-installs dependencies, prompts for vault password
+- One-command Windows PowerShell lifecycle for installing, bootstrapping, validating, launching, exporting, and removing isolated, named WSL distros
 - Makefile with `lint`, `validate`, `check`, `provision` targets
 - `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `LICENSE`
 - `.editorconfig` and `.pre-commit-config.yaml`

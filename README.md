@@ -31,6 +31,7 @@ Provision any Ubuntu machine — WSL2, cloud VM, bare metal, or VM — with your
 ## Features
 
 - **One-command bootstrap** — `curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install | bash`
+- **One-command WSL lifecycle** — create, bootstrap, validate, launch, export, or remove a distro from PowerShell
 - **Encrypted secrets** — SSH keys, GPG keys, AWS credentials, kube config stored in AES-256-CBC + PBKDF2 vault
 - **Declarative machine state** — packages, snaps, npm/pipx/cargo/gem packages, repos, runtimes all captured as version-controlled YAML
 - **Idempotent** — safe to run multiple times; only installs what's missing
@@ -60,6 +61,36 @@ The script will:
 3. Prompt for your vault password
 4. Run the full provisioning playbook
 5. Restore your dotfiles, secrets, packages, tools, and repos
+
+### One-command WSL lifecycle
+
+Run these commands from **Windows PowerShell**, not from inside Ubuntu. The default `up` command installs Ubuntu 26.04 as the separately named `Ubuntu-26.04-Dotfiles` WSL2 instance when absent, creates the `aziz0220` Linux user, prompts securely for its password and the encrypted vault passphrase, provisions and validates the machine, then launches it. An existing distro named `Ubuntu-26.04` is not changed:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/aziz0220/dotfiles/main/scripts/wsl.ps1')))
+```
+
+Create a separately named instance or choose its storage location:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/aziz0220/dotfiles/main/scripts/wsl.ps1'))) up Ubuntu-26.04 -Name Work-26 -InstallLocation 'D:\WSL\Work-26'
+```
+
+Remove an instance with one command. Without `-Force`, teardown requires typing the exact distro name because `wsl --unregister` permanently deletes its filesystem:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/aziz0220/dotfiles/main/scripts/wsl.ps1'))) down Ubuntu-26.04
+```
+
+With no `-Name`, both `up` and `down` resolve the managed instance name to `Ubuntu-26.04-Dotfiles`; the existing `Ubuntu-26.04` distro is never selected. For a custom instance, pass the same explicit `-Name` to both actions.
+
+Export a safety backup before removal:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/aziz0220/dotfiles/main/scripts/wsl.ps1'))) down Ubuntu-26.04 -ExportPath "$HOME\Backups\Ubuntu-26.04-Dotfiles.tar"
+```
+
+The `down` action does **not** capture, commit, or push machine state. That update workflow remains intentionally separate; use `-ExportPath` when unpushed data may exist.
 
 ### Authenticated access
 
@@ -235,11 +266,14 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 │   ├── decrypt_home_bundle.sh         # Decrypt secrets vault
 │   ├── encrypt_home_bundle.sh         # Encrypt secrets vault
 │   ├── rotate_vault_password.sh       # Change vault password
-│   └── validate_setup.sh              # Post-provision validation
+│   ├── validate_setup.sh              # Post-provision validation
+│   └── wsl.ps1                        # Windows-side WSL up/down lifecycle
 │
 ├── test/
 │   ├── ansible_run_test.sh            # Orchestrator regression test
-│   └── docker_test.sh                 # Docker home-restore regression
+│   ├── docker_test.sh                 # Docker home-restore regression
+│   ├── wsl_lifecycle_test.ps1         # Mocked PowerShell lifecycle tests
+│   └── wsl_lifecycle_test.sh          # Cross-platform test launcher
 │
 ├── .editorconfig                      # Editor consistency
 ├── .pre-commit-config.yaml            # Pre-commit hook definitions
@@ -309,6 +343,7 @@ bash scripts/rotate_vault_password.sh
 make lint        # yamllint + shellcheck + ansible-lint
 make validate    # YAML syntax + required files
 make check       # lint + validate
+make wsl-test    # mocked WSL up/down lifecycle
 ```
 
 ### CI locally

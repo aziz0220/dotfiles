@@ -22,6 +22,7 @@ lint:
     echo "→ Ansible syntax check"; ansible-playbook --syntax-check -i inventory.ini local.yml
     echo "→ Ansible lint"; PYTHONWARNINGS=ignore::DeprecationWarning ansible-lint local.yml
     echo "→ Regression tests"; bash test/ansible_run_test.sh
+    echo "→ WSL lifecycle tests"; bash test/wsl_lifecycle_test.sh
     echo "✓ All lints passed"
 
 # Validate repo structure and data  
@@ -51,6 +52,10 @@ provision-tag tag:
 # Test provisioning in Docker (default: ubuntu 24.04)
 docker-test version="24.04":
     bash test/docker_test.sh {{version}}
+
+# Test Windows-side WSL lifecycle orchestration
+wsl-test:
+    bash test/wsl_lifecycle_test.sh
 
 # Run full CI pipeline locally
 ci: check
