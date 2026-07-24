@@ -138,6 +138,22 @@ function Test-WslDistributionRegistered {
     ).Count -gt 0
 }
 
+function Get-WslDistributionVersion {
+    param([string]$Name)
+
+    $result = Invoke-WslCommand -Arguments @("--list", "--verbose")
+    $distributionPattern = '^\s*\*?\s*' + [regex]::Escape($Name) + '\s+\S+\s+([12])\s*$'
+
+    foreach ($line in $result.Output) {
+        $match = [regex]::Match($line, $distributionPattern, [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        if ($match.Success) {
+            return [int]$match.Groups[1].Value
+        }
+    }
+
+    return $null
+}
+
 function Test-LinuxUser {
     param(
         [string]$Name,
@@ -452,7 +468,15 @@ function Install-WslDistribution {
         throw "WSL did not register '$Name'. Rerun the same command; reboot first if Windows requested it."
     }
 
-    Invoke-WslCommand -Arguments @("--set-version", $Name, "2") -Interactive | Out-Null
+    $installedVersion = Get-WslDistributionVersion -Name $Name
+    if ($installedVersion -eq 1) {
+        Invoke-WslCommand -Arguments @("--set-version", $Name, "2") -Interactive | Out-Null
+        $installedVersion = Get-WslDistributionVersion -Name $Name
+    }
+
+    if ($installedVersion -ne 2) {
+        throw "Unable to verify that WSL distro '$Name' is running as WSL2. Check it with 'wsl --list --verbose'."
+    }
 }
 
 function Invoke-WslUp {
