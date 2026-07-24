@@ -44,11 +44,24 @@ function Assert-Throws {
     Assert-True $threw $Message
 }
 
+function ConvertTo-NullPaddedString {
+    param([string]$Value)
+
+    $builder = New-Object System.Text.StringBuilder
+    foreach ($character in $Value.ToCharArray()) {
+        [void]$builder.Append($character)
+        [void]$builder.Append([char]0)
+    }
+
+    return $builder.ToString()
+}
+
 function Reset-WslMock {
     param(
         [bool]$Registered = $false,
         [string]$RegisteredName = "Dotfiles-Test",
         [bool]$OnlineAvailable = $true,
+        [bool]$NullPaddedOutput = $false,
         [bool]$UserExists = $false,
         [bool]$FailBootstrap = $false
     )
@@ -60,6 +73,7 @@ function Reset-WslMock {
         $script:MockRegisteredNames.Add($RegisteredName)
     }
     $script:MockOnlineAvailable = $OnlineAvailable
+    $script:MockNullPaddedOutput = $NullPaddedOutput
     $script:MockUserExists = $UserExists
     $script:MockFailBootstrap = $FailBootstrap
     $script:MockCalls = [System.Collections.Generic.List[string]]::new()
@@ -82,14 +96,21 @@ function Reset-WslMock {
             else {
                 @("Ubuntu-24.04                    Ubuntu 24.04 LTS")
             }
+            $output = @("NAME                            FRIENDLY NAME") + $onlineDistributions
+            if ($script:MockNullPaddedOutput) {
+                $output = @($output | ForEach-Object { ConvertTo-NullPaddedString $_ })
+            }
             return [pscustomobject]@{
                 ExitCode = 0
-                Output = @("NAME                            FRIENDLY NAME") + $onlineDistributions
+                Output = $output
             }
         }
 
         if ($Arguments.Count -ge 2 -and $Arguments[0] -eq "--list" -and $Arguments[1] -eq "--quiet") {
             $output = @($script:MockRegisteredNames)
+            if ($script:MockNullPaddedOutput) {
+                $output = @($output | ForEach-Object { ConvertTo-NullPaddedString $_ })
+            }
             return [pscustomobject]@{ ExitCode = 0; Output = $output }
         }
 
@@ -225,6 +246,16 @@ Assert-Throws {
         -NoLaunch
 } "up should reject a distro that is absent from the online catalog"
 Assert-True (-not (Test-Call '^--install ')) "unavailable distro should fail before install"
+
+Reset-WslMock -NullPaddedOutput $true
+Invoke-WslUp `
+    -Distro "Ubuntu-26.04" `
+    -Name "Null-Padded-Test" `
+    -UserName "tester" `
+    -LinuxPassword $testPassword `
+    -NoLaunch
+Assert-True (Test-Call '^--install --distribution Ubuntu-26\.04 --name Null-Padded-Test --no-launch$') "PowerShell 5.1 NUL-padded catalog output should still select online installation"
+Assert-True (-not (Test-Call '^--export Ubuntu-26\.04 ')) "NUL-padded catalog output should not trigger the local clone fallback"
 
 $cloneLocation = Join-Path ([System.IO.Path]::GetTempPath()) "dotfiles-wsl-clone-test"
 Reset-WslMock -Registered $true -RegisteredName "Ubuntu-26.04" -OnlineAvailable $false -UserExists $true
