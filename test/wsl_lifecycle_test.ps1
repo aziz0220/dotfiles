@@ -48,12 +48,18 @@ function Reset-WslMock {
     param(
         [bool]$Registered = $false,
         [string]$RegisteredName = "Dotfiles-Test",
+        [bool]$OnlineAvailable = $true,
         [bool]$UserExists = $false,
         [bool]$FailBootstrap = $false
     )
 
     $script:MockRegistered = $Registered
     $script:MockRegisteredName = $RegisteredName
+    $script:MockRegisteredNames = [System.Collections.Generic.List[string]]::new()
+    if ($Registered) {
+        $script:MockRegisteredNames.Add($RegisteredName)
+    }
+    $script:MockOnlineAvailable = $OnlineAvailable
     $script:MockUserExists = $UserExists
     $script:MockFailBootstrap = $FailBootstrap
     $script:MockCalls = [System.Collections.Generic.List[string]]::new()
@@ -70,17 +76,20 @@ function Reset-WslMock {
         $script:MockCalls.Add($call)
 
         if ($Arguments.Count -ge 2 -and $Arguments[0] -eq "--list" -and $Arguments[1] -eq "--online") {
+            $onlineDistributions = if ($script:MockOnlineAvailable) {
+                @("Ubuntu-26.04                    Ubuntu 26.04 LTS")
+            }
+            else {
+                @("Ubuntu-24.04                    Ubuntu 24.04 LTS")
+            }
             return [pscustomobject]@{
                 ExitCode = 0
-                Output = @(
-                    "NAME                            FRIENDLY NAME",
-                    "Ubuntu-26.04                    Ubuntu 26.04 LTS"
-                )
+                Output = @("NAME                            FRIENDLY NAME") + $onlineDistributions
             }
         }
 
         if ($Arguments.Count -ge 2 -and $Arguments[0] -eq "--list" -and $Arguments[1] -eq "--quiet") {
-            $output = if ($script:MockRegistered) { @($script:MockRegisteredName) } else { @() }
+            $output = @($script:MockRegisteredNames)
             return [pscustomobject]@{ ExitCode = 0; Output = $output }
         }
 
@@ -89,6 +98,18 @@ function Reset-WslMock {
             $nameIndex = [Array]::IndexOf($Arguments, "--name")
             if ($nameIndex -ge 0 -and ($nameIndex + 1) -lt $Arguments.Count) {
                 $script:MockRegisteredName = $Arguments[$nameIndex + 1]
+                if (-not $script:MockRegisteredNames.Contains($script:MockRegisteredName)) {
+                    $script:MockRegisteredNames.Add($script:MockRegisteredName)
+                }
+            }
+            return [pscustomobject]@{ ExitCode = 0; Output = @() }
+        }
+
+        if ($Arguments.Count -gt 1 -and $Arguments[0] -eq "--import") {
+            $script:MockRegistered = $true
+            $script:MockRegisteredName = $Arguments[1]
+            if (-not $script:MockRegisteredNames.Contains($script:MockRegisteredName)) {
+                $script:MockRegisteredNames.Add($script:MockRegisteredName)
             }
             return [pscustomobject]@{ ExitCode = 0; Output = @() }
         }
@@ -104,7 +125,8 @@ function Reset-WslMock {
         }
 
         if ($Arguments.Count -gt 0 -and $Arguments[0] -eq "--unregister") {
-            $script:MockRegistered = $false
+            [void]$script:MockRegisteredNames.Remove($Arguments[1])
+            $script:MockRegistered = $script:MockRegisteredNames.Count -gt 0
             return [pscustomobject]@{ ExitCode = 0; Output = @() }
         }
 
@@ -203,6 +225,25 @@ Assert-Throws {
         -NoLaunch
 } "up should reject a distro that is absent from the online catalog"
 Assert-True (-not (Test-Call '^--install ')) "unavailable distro should fail before install"
+
+$cloneLocation = Join-Path ([System.IO.Path]::GetTempPath()) "dotfiles-wsl-clone-test"
+Reset-WslMock -Registered $true -RegisteredName "Ubuntu-26.04" -OnlineAvailable $false -UserExists $true
+Invoke-WslUp `
+    -Distro "Ubuntu-26.04" `
+    -Name "Dotfiles-Test" `
+    -UserName "tester" `
+    -InstallLocation $cloneLocation `
+    -NoLaunch
+Assert-True (Test-Call '^--export Ubuntu-26\.04 .*\.tar$') "catalog miss should export the existing source distro"
+Assert-True (Test-Call ('^--import Dotfiles-Test ' + [regex]::Escape([IO.Path]::GetFullPath($cloneLocation)) + ' .*\.tar --version 2$')) "catalog miss should import a separate WSL2 instance"
+Assert-True (-not (Test-Call '^--unregister Ubuntu-26\.04$')) "local clone fallback should not unregister the source distro"
+Assert-True $script:MockRegisteredNames.Contains("Ubuntu-26.04") "local clone fallback should preserve the source registration"
+Assert-True $script:MockRegisteredNames.Contains("Dotfiles-Test") "local clone fallback should register the managed instance"
+Assert-True (Test-Call '^-d Dotfiles-Test ') "local clone fallback should bootstrap only the managed instance"
+
+$defaultCloneRoot = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) "WSL"
+$defaultCloneLocation = Get-WslImportLocation -Name "Dotfiles-Test" -InstallLocation ""
+Assert-True ($defaultCloneLocation -eq (Join-Path $defaultCloneRoot "Dotfiles-Test")) "local clone fallback should have a safe default install location"
 
 Reset-WslMock -Registered $true -UserExists $true
 Assert-Throws {

@@ -84,6 +84,8 @@ Remove an instance with one command. Without `-Force`, teardown requires typing 
 
 With no `-Name`, both `up` and `down` resolve the managed instance name to `Ubuntu-26.04-Dotfiles`; the existing `Ubuntu-26.04` distro is never selected. For a custom instance, pass the same explicit `-Name` to both actions.
 
+If the requested release is temporarily absent from `wsl --list --online` but a distro with that source name is already registered, `up` creates the managed instance from a temporary `wsl --export`/`wsl --import` snapshot instead. The source remains registered and is never unregistered. The temporary archive is deleted after import; cloning can require additional time and disk space. Without `-InstallLocation`, imported instances use `%LOCALAPPDATA%\WSL\<Name>`.
+
 Export a safety backup before removal:
 
 ```powershell

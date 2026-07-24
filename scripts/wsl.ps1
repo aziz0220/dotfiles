@@ -7,8 +7,10 @@ The up action installs a named WSL2 distro when needed, creates a normal Linux
 user, runs the dotfiles bootstrap, validates the result, and launches the
 completed distro. By default, Ubuntu-26.04 is registered as the separate
 Ubuntu-26.04-Dotfiles instance, leaving an existing Ubuntu-26.04 instance
-untouched. The down action optionally exports and then unregisters the distro
-after explicit confirmation.
+untouched. If the release is absent from the online catalog but registered
+locally, the managed instance is imported from a temporary export of that local
+source. The down action optionally exports and then unregisters the distro after
+explicit confirmation.
 
 .EXAMPLE
 & ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/aziz0220/dotfiles/main/scripts/wsl.ps1')))
@@ -331,6 +333,76 @@ function Invoke-WslValidation {
         -Interactive | Out-Null
 }
 
+function Get-WslImportLocation {
+    param(
+        [string]$Name,
+        [string]$InstallLocation
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($InstallLocation)) {
+        return [IO.Path]::GetFullPath($InstallLocation)
+    }
+
+    $localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+    if ([string]::IsNullOrWhiteSpace($localAppData)) {
+        throw "Unable to determine the local application data directory. Pass -InstallLocation explicitly."
+    }
+
+    return Join-Path (Join-Path $localAppData "WSL") $Name
+}
+
+function Import-LocalWslDistribution {
+    param(
+        [string]$Distro,
+        [string]$Name,
+        [string]$InstallLocation
+    )
+
+    if ([string]::Equals($Distro, $Name, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "The managed instance name must differ from the local source distro '$Distro'."
+    }
+
+    $resolvedInstallLocation = Get-WslImportLocation -Name $Name -InstallLocation $InstallLocation
+    if (Test-Path -LiteralPath $resolvedInstallLocation) {
+        throw "Import location already exists: $resolvedInstallLocation"
+    }
+
+    $installParent = Split-Path -Parent $resolvedInstallLocation
+    if (-not [string]::IsNullOrWhiteSpace($installParent)) {
+        New-Item -ItemType Directory -Path $installParent -Force | Out-Null
+    }
+
+    $archivePath = Join-Path `
+        ([IO.Path]::GetTempPath()) `
+        ("dotfiles-wsl-{0}.tar" -f [Guid]::NewGuid().ToString("N"))
+
+    try {
+        Write-Stage "Cloning local WSL distro '$Distro' as '$Name'"
+        Invoke-WslCommand -Arguments @("--export", $Distro, $archivePath) -Interactive | Out-Null
+        Invoke-WslCommand `
+            -Arguments @("--import", $Name, $resolvedInstallLocation, $archivePath, "--version", "2") `
+            -Interactive | Out-Null
+
+        if (-not (Test-WslDistributionRegistered -Name $Name)) {
+            throw "WSL did not register imported distro '$Name'."
+        }
+    }
+    catch {
+        if (Test-WslDistributionRegistered -Name $Name) {
+            Invoke-WslCommand -Arguments @("--unregister", $Name) -Interactive -AllowFailure | Out-Null
+        }
+        if (Test-Path -LiteralPath $resolvedInstallLocation) {
+            Remove-Item -LiteralPath $resolvedInstallLocation -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        throw
+    }
+    finally {
+        if (Test-Path -LiteralPath $archivePath) {
+            Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Install-WslDistribution {
     param(
         [string]$Distro,
@@ -342,7 +414,15 @@ function Install-WslDistribution {
     $online = Invoke-WslCommand -Arguments @("--list", "--online")
     $distributionPattern = '^\s*' + [regex]::Escape($Distro) + '(?:\s{2,}.*)?\s*$'
     if (@($online.Output | Where-Object { $_ -match $distributionPattern }).Count -eq 0) {
-        throw "WSL distribution '$Distro' is not available. Run 'wsl --list --online' to see valid names."
+        if (Test-WslDistributionRegistered -Name $Distro) {
+            Import-LocalWslDistribution `
+                -Distro $Distro `
+                -Name $Name `
+                -InstallLocation $InstallLocation
+            return
+        }
+
+        throw "WSL distribution '$Distro' is neither available online nor registered locally. Run 'wsl --list --online' to see valid online names."
     }
 
     $arguments = [System.Collections.Generic.List[string]]::new()

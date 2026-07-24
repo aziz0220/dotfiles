@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Surface failed repository clones instead of reporting a successful playbook
 - Install current Junie, Copilot, clangd, Rust, Cloudflare, Tailscale, and Stripe CLIs
 - Keep user-scoped tools discoverable from clean login shells with portable `$HOME`-relative paths
+- Create an isolated WSL instance from a registered local source when the requested release is missing from the online catalog
 
 ## [0.1.0] — 2026-03-01
 
