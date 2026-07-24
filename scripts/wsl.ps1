@@ -181,8 +181,11 @@ function Invoke-WslRootScript {
         [switch]$AllowFailure
     )
 
+    $encodedScript = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Script))
+    $transport = "set -o pipefail; printf %s $encodedScript | base64 -d | bash"
+
     return Invoke-WslCommand `
-        -Arguments @("-d", $Name, "-u", "root", "--cd", "/", "--", "bash", "-lc", $Script) `
+        -Arguments @("-d", $Name, "-u", "root", "--cd", "/", "--", "bash", "-lc", $transport) `
         -AllowFailure:$AllowFailure
 }
 
