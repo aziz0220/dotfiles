@@ -92,17 +92,25 @@ function Invoke-WslCommand {
     if ($null -ne $script:WslCommandRunner) {
         $result = & $script:WslCommandRunner $Arguments ([bool]$Interactive) ([bool]$AllowFailure)
     }
-    elseif ($Interactive) {
-        & $script:WslExecutable @Arguments
-        $result = [pscustomobject]@{
-            ExitCode = $LASTEXITCODE
-            Output = @()
-        }
-    }
     else {
-        $output = @(& $script:WslExecutable @Arguments 2>&1)
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            if ($Interactive) {
+                & $script:WslExecutable @Arguments
+                $output = @()
+            }
+            else {
+                $output = @(& $script:WslExecutable @Arguments 2>&1)
+            }
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
         $result = [pscustomobject]@{
-            ExitCode = $LASTEXITCODE
+            ExitCode = $exitCode
             Output = $output
         }
     }
