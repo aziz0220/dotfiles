@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ubuntu 26.04 compatibility treats obsolete snapshot libraries as release-inapplicable
 
 ### Fixed
+- Normalize NUL-padded `wsl.exe` output captured by Windows PowerShell 5.1 so online and registered distros are detected correctly
 - Forward arbitrary Ansible arguments such as `--ask-become-pass` instead of treating them as tags
 - Surface failed repository clones instead of reporting a successful playbook
 - Install current Junie, Copilot, clangd, Rust, Cloudflare, Tailscale, and Stripe CLIs

@@ -103,8 +103,17 @@ function Invoke-WslCommand {
         $output = @(& $script:WslExecutable @Arguments 2>&1)
         $result = [pscustomobject]@{
             ExitCode = $LASTEXITCODE
-            Output = @($output | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ })
+            Output = $output
         }
+    }
+
+    $result = [pscustomobject]@{
+        ExitCode = $result.ExitCode
+        Output = @(
+            $result.Output |
+                ForEach-Object { $_.ToString().Replace(([char]0).ToString(), "").Trim() } |
+                Where-Object { $_ }
+        )
     }
 
     if ($result.ExitCode -ne 0 -and -not $AllowFailure) {
