@@ -193,6 +193,43 @@ function Test-Call {
     return @($script:MockCalls | Where-Object { $_ -match $Pattern }).Count -gt 0
 }
 
+function Invoke-WslStderrFixture {
+    param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Arguments)
+
+    if ($Arguments -contains "failure") {
+        $global:LASTEXITCODE = 23
+        return
+    }
+
+    $global:LASTEXITCODE = 0
+    Write-Error -Message "systemd user-session warning" -ErrorId "NativeCommandError"
+}
+
+$originalWslExecutable = $script:WslExecutable
+$originalWslCommandRunner = $script:WslCommandRunner
+try {
+    $script:WslCommandRunner = $null
+    $script:WslExecutable = "Invoke-WslStderrFixture"
+
+    $warningResult = Invoke-WslCommand -Arguments @("warning")
+    Assert-True ($warningResult.ExitCode -eq 0) "native stderr should not turn a successful WSL command into a failure"
+    Assert-True (($warningResult.Output -join "`n") -match 'systemd user-session warning') "native stderr should remain available in captured output"
+
+    $nativeFailure = $null
+    try {
+        Invoke-WslCommand -Arguments @("failure") | Out-Null
+    }
+    catch {
+        $nativeFailure = $_.Exception.Message
+    }
+    Assert-True ($nativeFailure -match 'exit code 23') "a real nonzero native exit should still fail with its exit code"
+    Assert-True ($ErrorActionPreference -eq "Stop") "native command handling should restore strict PowerShell error behavior"
+}
+finally {
+    $script:WslExecutable = $originalWslExecutable
+    $script:WslCommandRunner = $originalWslCommandRunner
+}
+
 $testPassword = ConvertTo-SecureString "test-password" -AsPlainText -Force
 
 Reset-WslMock -SetVersionExitCode -1
