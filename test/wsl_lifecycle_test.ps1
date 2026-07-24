@@ -193,6 +193,31 @@ function Test-Call {
     return @($script:MockCalls | Where-Object { $_ -match $Pattern }).Count -gt 0
 }
 
+function Get-DecodedRootScripts {
+    $decodedScripts = [System.Collections.Generic.List[string]]::new()
+    foreach ($call in $script:MockCalls) {
+        $match = [regex]::Match(
+            $call,
+            'printf %s ([A-Za-z0-9+/=]+) \| base64 -d \| bash$'
+        )
+        if ($match.Success) {
+            $decodedScripts.Add(
+                [Text.Encoding]::UTF8.GetString(
+                    [Convert]::FromBase64String($match.Groups[1].Value)
+                )
+            )
+        }
+    }
+
+    return @($decodedScripts)
+}
+
+function Test-RootScript {
+    param([string]$Pattern)
+
+    return @(Get-DecodedRootScripts | Where-Object { $_ -match $Pattern }).Count -gt 0
+}
+
 function Invoke-WslStderrFixture {
     param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Arguments)
 
@@ -232,6 +257,26 @@ finally {
 
 $testPassword = ConvertTo-SecureString "test-password" -AsPlainText -Force
 
+Reset-WslMock
+Initialize-WslUser -Name "Dotfiles-Test" -UserName "tester"
+$initializeUserCall = @(
+    $script:MockCalls |
+        Where-Object { $_ -match '^-d Dotfiles-Test -u root --cd / -- bash -lc ' }
+)[-1]
+$encodedScriptMatch = [regex]::Match(
+    $initializeUserCall,
+    'printf %s ([A-Za-z0-9+/=]+) \| base64 -d \| bash$'
+)
+Assert-True ($initializeUserCall -notmatch "[`r`n]") "root scripts should cross the PowerShell-to-WSL boundary without raw newlines"
+Assert-True $encodedScriptMatch.Success "root scripts should use a shell-safe encoded transport"
+if ($encodedScriptMatch.Success) {
+    $decodedScript = [Text.Encoding]::UTF8.GetString(
+        [Convert]::FromBase64String($encodedScriptMatch.Groups[1].Value)
+    )
+    Assert-True ($decodedScript -match "username='tester'") "encoded user initialization should preserve the requested user name"
+    Assert-True ($decodedScript -match 'usermod -aG sudo "\$username"') "encoded user initialization should preserve Bash variable expansion"
+}
+
 Reset-WslMock -SetVersionExitCode -1
 Invoke-WslUp `
     -Distro "Ubuntu-26.04" `
@@ -245,7 +290,7 @@ Assert-True (-not (Test-Call '^--set-version Dotfiles-Test 2$')) "fresh WSL2 ins
 Assert-True (-not (Test-Call '^--install .*--version ')) "fresh up should not pass the unsupported --version option to wsl --install"
 Assert-True (Test-Call 'raw\.githubusercontent\.com/aziz0220/dotfiles/main/install') "fresh up should run the repository bootstrap"
 Assert-True (Test-Call 'scripts/validate_setup\.sh') "fresh up should run post-bootstrap validation"
-Assert-True (Test-Call 'usermod -s .*zsh') "fresh up should make zsh the completed user's login shell"
+Assert-True (Test-RootScript 'usermod -s .*zsh') "fresh up should make zsh the completed user's login shell"
 Assert-True (Test-Call '^--terminate Dotfiles-Test$') "fresh up should terminate once so wsl.conf takes effect"
 Assert-True ($script:PasswordSetCount -eq 1) "fresh up should set the new Linux user's password"
 Assert-True $script:MockRegistered "fresh up should leave the distro registered"
@@ -278,7 +323,7 @@ Assert-Throws {
         -UserName "tester" `
         -NoLaunch
 } "bootstrap failure should fail the up action"
-Assert-True (Test-Call 'rm -f /etc/sudoers\.d/99-dotfiles-bootstrap-tester') "bootstrap failure should remove temporary passwordless sudo"
+Assert-True (Test-RootScript 'rm -f /etc/sudoers\.d/99-dotfiles-bootstrap-tester') "bootstrap failure should remove temporary passwordless sudo"
 
 Reset-WslMock -Registered $true -UserExists $true
 $exportPath = Join-Path ([System.IO.Path]::GetTempPath()) "dotfiles-wsl-test.tar"
