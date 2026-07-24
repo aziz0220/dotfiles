@@ -62,6 +62,8 @@ function Reset-WslMock {
         [string]$RegisteredName = "Dotfiles-Test",
         [bool]$OnlineAvailable = $true,
         [bool]$NullPaddedOutput = $false,
+        [int]$InstalledVersion = 2,
+        [int]$SetVersionExitCode = 0,
         [bool]$UserExists = $false,
         [bool]$FailBootstrap = $false
     )
@@ -74,6 +76,9 @@ function Reset-WslMock {
     }
     $script:MockOnlineAvailable = $OnlineAvailable
     $script:MockNullPaddedOutput = $NullPaddedOutput
+    $script:MockInstalledVersion = $InstalledVersion
+    $script:MockDistributionVersion = if ($Registered) { 2 } else { $null }
+    $script:MockSetVersionExitCode = $SetVersionExitCode
     $script:MockUserExists = $UserExists
     $script:MockFailBootstrap = $FailBootstrap
     $script:MockCalls = [System.Collections.Generic.List[string]]::new()
@@ -114,6 +119,14 @@ function Reset-WslMock {
             return [pscustomobject]@{ ExitCode = 0; Output = $output }
         }
 
+        if ($Arguments.Count -ge 2 -and $Arguments[0] -eq "--list" -and $Arguments[1] -eq "--verbose") {
+            $output = @("  NAME            STATE           VERSION")
+            foreach ($registeredName in $script:MockRegisteredNames) {
+                $output += "  $registeredName    Stopped         $($script:MockDistributionVersion)"
+            }
+            return [pscustomobject]@{ ExitCode = 0; Output = $output }
+        }
+
         if ($Arguments.Count -gt 0 -and $Arguments[0] -eq "--install") {
             $script:MockRegistered = $true
             $nameIndex = [Array]::IndexOf($Arguments, "--name")
@@ -123,6 +136,7 @@ function Reset-WslMock {
                     $script:MockRegisteredNames.Add($script:MockRegisteredName)
                 }
             }
+            $script:MockDistributionVersion = $script:MockInstalledVersion
             return [pscustomobject]@{ ExitCode = 0; Output = @() }
         }
 
@@ -132,7 +146,15 @@ function Reset-WslMock {
             if (-not $script:MockRegisteredNames.Contains($script:MockRegisteredName)) {
                 $script:MockRegisteredNames.Add($script:MockRegisteredName)
             }
+            $script:MockDistributionVersion = 2
             return [pscustomobject]@{ ExitCode = 0; Output = @() }
+        }
+
+        if ($Arguments.Count -gt 0 -and $Arguments[0] -eq "--set-version") {
+            if ($script:MockSetVersionExitCode -eq 0) {
+                $script:MockDistributionVersion = [int]$Arguments[2]
+            }
+            return [pscustomobject]@{ ExitCode = $script:MockSetVersionExitCode; Output = @() }
         }
 
         if ($call -match "id -u tester") {
@@ -173,7 +195,7 @@ function Test-Call {
 
 $testPassword = ConvertTo-SecureString "test-password" -AsPlainText -Force
 
-Reset-WslMock
+Reset-WslMock -SetVersionExitCode -1
 Invoke-WslUp `
     -Distro "Ubuntu-26.04" `
     -Name "Dotfiles-Test" `
@@ -182,7 +204,7 @@ Invoke-WslUp `
     -NoLaunch
 
 Assert-True (Test-Call '^--install --distribution Ubuntu-26\.04 --name Dotfiles-Test --no-launch$') "fresh up should install the requested named distro"
-Assert-True (Test-Call '^--set-version Dotfiles-Test 2$') "fresh up should configure only the named instance as WSL2"
+Assert-True (-not (Test-Call '^--set-version Dotfiles-Test 2$')) "fresh WSL2 install should not run a redundant conversion"
 Assert-True (-not (Test-Call '^--install .*--version ')) "fresh up should not pass the unsupported --version option to wsl --install"
 Assert-True (Test-Call 'raw\.githubusercontent\.com/aziz0220/dotfiles/main/install') "fresh up should run the repository bootstrap"
 Assert-True (Test-Call 'scripts/validate_setup\.sh') "fresh up should run post-bootstrap validation"
@@ -190,6 +212,15 @@ Assert-True (Test-Call 'usermod -s .*zsh') "fresh up should make zsh the complet
 Assert-True (Test-Call '^--terminate Dotfiles-Test$') "fresh up should terminate once so wsl.conf takes effect"
 Assert-True ($script:PasswordSetCount -eq 1) "fresh up should set the new Linux user's password"
 Assert-True $script:MockRegistered "fresh up should leave the distro registered"
+
+Reset-WslMock -InstalledVersion 1
+Invoke-WslUp `
+    -Distro "Ubuntu-26.04" `
+    -Name "Dotfiles-Test" `
+    -UserName "tester" `
+    -LinuxPassword $testPassword `
+    -NoLaunch
+Assert-True (Test-Call '^--set-version Dotfiles-Test 2$') "fresh WSL1 install should be converted to WSL2"
 
 Reset-WslMock -Registered $true -UserExists $true
 Invoke-WslUp `
