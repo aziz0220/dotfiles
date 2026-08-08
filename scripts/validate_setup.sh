@@ -221,6 +221,36 @@ else
 fi
 
 echo
+echo "== Local Work Safety =="
+
+# Personal repositories are deliberately not tracked in vars/repos.yml, so
+# anything unpushed lives only on this machine and no rebuild can restore it.
+at_risk=0
+for entry in "$USER_HOME"/*/; do
+  dir="${entry%/}"
+  [ -d "$dir" ] || continue
+  if [ ! -d "$dir/.git" ]; then
+    info "not a git repository: $dir (back it up yourself if it matters)"
+    continue
+  fi
+  if ! git -C "$dir" remote 2>/dev/null | grep -q .; then
+    warn "no git remote: $dir (exists only here; nothing to restore from)"
+    at_risk=$((at_risk + 1))
+    continue
+  fi
+  dirty="$(git -C "$dir" status --porcelain 2>/dev/null | wc -l)"
+  unpushed="$(git -C "$dir" log --branches --not --remotes --oneline 2>/dev/null | wc -l)"
+  if [ "$dirty" -gt 0 ] || [ "$unpushed" -gt 0 ]; then
+    warn "unpushed work: $dir (uncommitted=$dirty unpushed=$unpushed)"
+    at_risk=$((at_risk + 1))
+  fi
+done
+
+if [ "$at_risk" -eq 0 ]; then
+  pass "no unpushed local work under $USER_HOME"
+fi
+
+echo
 echo "== Validation Summary =="
 echo "failures: $failures"
 echo "warnings: $warnings"

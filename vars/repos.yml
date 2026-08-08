@@ -161,75 +161,10 @@ repositories:
     clone_if_missing: true
     remotes:
       origin: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
-  - name: "pipmedia"
-    path: "{{ user_home }}/pipmedia"
-    clone_from: "git@github.com:aziz0220/pipmedia.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/pipmedia.git"
-  - name: "coderefactor"
-    path: "{{ user_home }}/coderefactor"
-    clone_from: "git@github.com:aziz0220/coderefactor.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/coderefactor.git"
-  - name: "refactor-platform"
-    path: "{{ user_home }}/refactor-platform"
-    clone_from: "git@github.com:aziz0220/coderefactor-demo.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/coderefactor-demo.git"
-  - name: "Tipico---Multi-Agent-for-Code-Refactoring"
-    path: "{{ user_home }}/Tipico---Multi-Agent-for-Code-Refactoring"
-    clone_from: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:PiSchool/Tipico---Multi-Agent-for-Code-Refactoring.git"
-  - name: "ai-usage"
-    path: "{{ user_home }}/ai-usage"
-    clone_from: "git@github.com:aziz0220/ai-usage.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/ai-usage.git"
-  - name: "reacted"
-    path: "{{ user_home }}/reacted"
-    clone_from: "git@github.com:aziz0220/reacted.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/reacted.git"
-  - name: "fem-kubernetes"
-    path: "{{ user_home }}/fem-kubernetes"
-    clone_from: "git@github.com:ALT-F4-LLC/fem-kubernetes.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:ALT-F4-LLC/fem-kubernetes.git"
-  - name: "profile"
-    path: "{{ user_home }}/profile"
-    clone_from: "git@github.com:aziz0220/portfolio.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/portfolio.git"
-  - name: "pricesTN"
-    path: "{{ user_home }}/pricesTN"
-    clone_from: "git@github.com:aziz0220/pricesTN.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/pricesTN.git"
-  - name: "thesis-defense"
-    path: "{{ user_home }}/thesis-defense"
-    clone_from: "git@github.com:aziz0220/thesis-defense.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/thesis-defense.git"
-  - name: "journey"
-    path: "{{ user_home }}/journey"
-    clone_from: "git@github.com:aziz0220/journey.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/journey.git"
-  - name: "disk-fix"
-    path: "{{ user_home }}/disk-fix"
-    clone_from: "git@github.com:aziz0220/disk-fix.git"
-    clone_if_missing: true
-    remotes:
-      origin: "git@github.com:aziz0220/disk-fix.git"
+
+# Personal project repositories are deliberately NOT tracked here. Cloning,
+# pushing and pulling your own work is your responsibility, not the
+# provisioner's -- it cannot know about unpushed commits or local-only
+# directories. Only tooling required for the shell and editor to function
+# is cloned above. See scripts/validate_setup.sh, which warns about
+# unpushed or uncommitted work before you rebuild a machine.
