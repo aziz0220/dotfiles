@@ -19,6 +19,19 @@ if ! command -v ansible-playbook >/dev/null 2>&1; then
   exit 1
 fi
 
+# Only ./install pulls. Provisioning from a stale clone silently applies stale
+# vars and a stale vault, so warn rather than pull: pulling here would swap the
+# playbook out from under the run. Set DOTFILES_SKIP_FETCH=1 to stay offline.
+if [ "${DOTFILES_SKIP_FETCH:-0}" != "1" ] &&
+   git -C "$REPO_DIR" rev-parse '@{u}' >/dev/null 2>&1 &&
+   git -C "$REPO_DIR" fetch --quiet 2>/dev/null; then
+  behind="$(git -C "$REPO_DIR" rev-list --count 'HEAD..@{u}' 2>/dev/null || echo 0)"
+  if [ "${behind:-0}" -gt 0 ]; then
+    echo "WARNING: $REPO_DIR is $behind commit(s) behind upstream; provisioning from a stale state." >&2
+    echo "         Run 'git -C $REPO_DIR pull --ff-only' first to use the latest vars and vault." >&2
+  fi
+fi
+
 if [ ! -d "$BOOTSTRAP_HOME_DIR" ]; then
   if [ -f "$ENCRYPTED_HOME_BUNDLE" ]; then
     if [ -z "${SETUP_SECRETS_PASSWORD-}" ]; then

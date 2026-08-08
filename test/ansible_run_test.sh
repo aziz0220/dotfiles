@@ -34,7 +34,7 @@ export PATH="$FAKE_BIN:$PATH"
 run_case() {
   : > "$ANSIBLE_LOG"
   : > "$SUDO_LOG"
-  bash "$REPO_DIR/ansible-run" "$@" >/dev/null
+  DOTFILES_SKIP_FETCH=1 bash "$REPO_DIR/ansible-run" "$@" >/dev/null
 }
 
 fail() {
@@ -56,5 +56,31 @@ run_case
 if ! grep -qx -- '-v' "$SUDO_LOG"; then
   fail "sudo should only refresh credentials, not wrap ansible-playbook"
 fi
+
+# A clone that is behind upstream must warn instead of silently provisioning
+# from stale vars and a stale vault. Uses a local bare remote, never the network.
+STALE_REPO="$TEST_DIR/stale"
+git init -q --bare "$TEST_DIR/origin.git"
+git clone -q "$TEST_DIR/origin.git" "$STALE_REPO" 2>/dev/null
+git -C "$STALE_REPO" config user.email test@example.com
+git -C "$STALE_REPO" config user.name test
+cp "$REPO_DIR/ansible-run" "$STALE_REPO/ansible-run"
+git -C "$STALE_REPO" add ansible-run
+git -C "$STALE_REPO" commit -qm init
+git -C "$STALE_REPO" push -q -u origin HEAD
+git -C "$STALE_REPO" commit -q --allow-empty -m upstream-only
+git -C "$STALE_REPO" push -q origin HEAD
+git -C "$STALE_REPO" reset -q --hard HEAD~1
+
+stale_output="$(bash "$STALE_REPO/ansible-run" 2>&1 >/dev/null || true)"
+case "$stale_output" in
+  *"behind upstream"*) ;;
+  *) fail "stale clone did not warn: $stale_output" ;;
+esac
+
+up_to_date_output="$(DOTFILES_SKIP_FETCH=1 bash "$STALE_REPO/ansible-run" 2>&1 >/dev/null || true)"
+case "$up_to_date_output" in
+  *"behind upstream"*) fail "DOTFILES_SKIP_FETCH did not suppress the fetch" ;;
+esac
 
 printf 'PASS: ansible-run argument handling\n'
