@@ -45,6 +45,9 @@ capture_snap() {
   } > "$REPO_DIR/vars/snap-list.yml"
 }
 
+# opencode-ai is excluded below: custom_tools installs opencode via its own
+# installer, and the npm package's postinstall resolves musl-only binaries,
+# failing EBADPLATFORM on glibc. Capturing it breaks every fresh provision.
 capture_npm_global() {
   {
     echo "npm_global_packages:"
@@ -57,7 +60,7 @@ capture_npm_global() {
       ' \
         | sed -n '2,$p' \
         | sed -E 's|.*/node_modules/||' \
-        | grep -vE '^(npm|corepack)$' \
+        | grep -vE '^(npm|corepack|opencode-ai)$' \
         | sort -u \
         | awk '{print "  - \"" $0 "\""}'
     fi

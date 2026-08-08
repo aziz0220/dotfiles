@@ -21,6 +21,9 @@ cat > "$FAKE_BIN/sudo" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$SUDO_LOG"
 if [ "${1:-}" = "-v" ]; then
+  exit 1
+fi
+if [ "${1:-}" = "-n" ] && [ "${2:-}" = "true" ]; then
   exit 0
 fi
 exec "$@"
@@ -53,8 +56,11 @@ grep -q -- '--tags dotfiles' "$ANSIBLE_LOG" || fail "tag selection was not forwa
 grep -q -- '--check' "$ANSIBLE_LOG" || fail "extra Ansible arguments were not forwarded"
 
 run_case
-if ! grep -qx -- '-v' "$SUDO_LOG"; then
-  fail "sudo should only refresh credentials, not wrap ansible-playbook"
+if ! grep -qx -- '-n true' "$SUDO_LOG"; then
+  fail "sudo should verify non-interactive command access without refreshing credentials"
+fi
+if grep -qx -- '-v' "$SUDO_LOG"; then
+  fail "sudo -v should not be used because mixed PASSWD/NOPASSWD policies can still prompt"
 fi
 
 # A clone that is behind upstream must warn instead of silently provisioning

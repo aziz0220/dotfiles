@@ -45,9 +45,15 @@ declare -a INCLUDE_PATHS=(
   ".config/alacritty"
   ".config/tmux"
   ".oh-my-zsh/custom"
-  ".claude"
-  ".codex"
-  ".local/bin"
+  # Agent config only. The parent directories accumulate GBs of regenerable
+  # state (plugin caches, session transcripts, sqlite logs) that must not enter
+  # a bundle committed to a public repo -- GitHub rejects files over 100MB, and
+  # transcripts are not ours to publish. Add specific config paths here.
+  ".claude/settings.json"
+  ".codex/config.toml"
+  ".codex/skills"
+  # .local/bin deliberately omitted: every entry is an installed binary that
+  # custom_tools, cargo, or npm reinstalls. Capturing it added 1.3GB.
   "bin"
 )
 
@@ -66,8 +72,19 @@ mkdir -p "$OUTPUT_HOME_DIR"
 for rel in "${INCLUDE_PATHS[@]}"; do
   src="$SOURCE_HOME/$rel"
   if [ -e "$src" ]; then
-    rsync -a --relative "$SOURCE_HOME/./$rel" "$OUTPUT_HOME_DIR/"
+    rsync -a --relative --exclude='.git/' "$SOURCE_HOME/./$rel" "$OUTPUT_HOME_DIR/"
   fi
+done
+
+# Rewrite the capturing user's absolute home path so the bundle restores under
+# any username. Shell rc files only: $HOME expands there, but not in the JSON
+# and TOML configs that also carry absolute paths.
+# ponytail: those (.claude/settings.json, .codex/config.toml) hold regenerable
+# per-machine state, so leaving them stale is harmless. Revisit only if a
+# non-shell config ever holds a path something actually depends on.
+for rel in .zshrc .zshenv .bashrc .profile; do
+  rc="$OUTPUT_HOME_DIR/$rel"
+  [ -f "$rc" ] && sed -i "s|${SOURCE_HOME%/}|\$HOME|g" "$rc"
 done
 
 # Remove host-specific or runtime artifacts that should not be replicated.

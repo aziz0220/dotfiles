@@ -56,6 +56,22 @@ function ConvertTo-NullPaddedString {
     return $builder.ToString()
 }
 
+function ConvertFrom-WslBashCall {
+    param([string]$Call)
+
+    $match = [regex]::Match(
+        $Call,
+        'exec bash <\(printf %s ([A-Za-z0-9+/=]+) \| base64 -d\)$'
+    )
+    if (-not $match.Success) {
+        return $null
+    }
+
+    return [Text.Encoding]::UTF8.GetString(
+        [Convert]::FromBase64String($match.Groups[1].Value)
+    )
+}
+
 function Reset-WslMock {
     param(
         [bool]$Registered = $false,
@@ -65,6 +81,8 @@ function Reset-WslMock {
         [int]$InstalledVersion = 2,
         [int]$SetVersionExitCode = 0,
         [bool]$UserExists = $false,
+        [bool]$UserPasswordSet = $true,
+        [bool]$BootstrapSudoWorks = $true,
         [bool]$FailBootstrap = $false
     )
 
@@ -80,6 +98,8 @@ function Reset-WslMock {
     $script:MockDistributionVersion = if ($Registered) { 2 } else { $null }
     $script:MockSetVersionExitCode = $SetVersionExitCode
     $script:MockUserExists = $UserExists
+    $script:MockUserPasswordSet = $UserPasswordSet
+    $script:MockBootstrapSudoWorks = $BootstrapSudoWorks
     $script:MockFailBootstrap = $FailBootstrap
     $script:MockCalls = [System.Collections.Generic.List[string]]::new()
     $script:PasswordSetCount = 0
@@ -162,7 +182,18 @@ function Reset-WslMock {
             return [pscustomobject]@{ ExitCode = $exitCode; Output = @() }
         }
 
-        if ($call -match "raw.githubusercontent.com/aziz0220/dotfiles/main/install") {
+        if ($call -match "passwd --status tester") {
+            $status = if ($script:MockUserPasswordSet) { "P" } else { "L" }
+            return [pscustomobject]@{ ExitCode = 0; Output = @("tester $status 2026-07-24 0 99999 7 -1") }
+        }
+
+        if ($call -match "sudo -n true") {
+            $exitCode = if ($script:MockBootstrapSudoWorks) { 0 } else { 1 }
+            return [pscustomobject]@{ ExitCode = $exitCode; Output = @() }
+        }
+
+        $decodedScript = ConvertFrom-WslBashCall -Call $call
+        if ($decodedScript -match "raw.githubusercontent.com/aziz0220/dotfiles/main/install") {
             $exitCode = if ($script:MockFailBootstrap) { 42 } else { 0 }
             return [pscustomobject]@{ ExitCode = $exitCode; Output = @() }
         }
@@ -196,16 +227,9 @@ function Test-Call {
 function Get-DecodedRootScripts {
     $decodedScripts = [System.Collections.Generic.List[string]]::new()
     foreach ($call in $script:MockCalls) {
-        $match = [regex]::Match(
-            $call,
-            'printf %s ([A-Za-z0-9+/=]+) \| base64 -d \| bash$'
-        )
-        if ($match.Success) {
-            $decodedScripts.Add(
-                [Text.Encoding]::UTF8.GetString(
-                    [Convert]::FromBase64String($match.Groups[1].Value)
-                )
-            )
+        $decodedScript = ConvertFrom-WslBashCall -Call $call
+        if ($null -ne $decodedScript) {
+            $decodedScripts.Add($decodedScript)
         }
     }
 
@@ -261,11 +285,11 @@ Reset-WslMock
 Initialize-WslUser -Name "Dotfiles-Test" -UserName "tester"
 $initializeUserCall = @(
     $script:MockCalls |
-        Where-Object { $_ -match '^-d Dotfiles-Test -u root --cd / -- bash -lc ' }
+        Where-Object { $_ -match '^-d Dotfiles-Test -u root --cd / -- bash -c ' }
 )[-1]
 $encodedScriptMatch = [regex]::Match(
     $initializeUserCall,
-    'printf %s ([A-Za-z0-9+/=]+) \| base64 -d \| bash$'
+    'exec bash <\(printf %s ([A-Za-z0-9+/=]+) \| base64 -d\)$'
 )
 Assert-True ($initializeUserCall -notmatch "[`r`n]") "root scripts should cross the PowerShell-to-WSL boundary without raw newlines"
 Assert-True $encodedScriptMatch.Success "root scripts should use a shell-safe encoded transport"
@@ -288,8 +312,8 @@ Invoke-WslUp `
 Assert-True (Test-Call '^--install --distribution Ubuntu-26\.04 --name Dotfiles-Test --no-launch$') "fresh up should install the requested named distro"
 Assert-True (-not (Test-Call '^--set-version Dotfiles-Test 2$')) "fresh WSL2 install should not run a redundant conversion"
 Assert-True (-not (Test-Call '^--install .*--version ')) "fresh up should not pass the unsupported --version option to wsl --install"
-Assert-True (Test-Call 'raw\.githubusercontent\.com/aziz0220/dotfiles/main/install') "fresh up should run the repository bootstrap"
-Assert-True (Test-Call 'scripts/validate_setup\.sh') "fresh up should run post-bootstrap validation"
+Assert-True (Test-RootScript 'raw\.githubusercontent\.com/aziz0220/dotfiles/main/install') "fresh up should run the repository bootstrap"
+Assert-True (Test-RootScript 'scripts/validate_setup\.sh') "fresh up should run post-bootstrap validation"
 Assert-True (Test-RootScript 'usermod -s .*zsh') "fresh up should make zsh the completed user's login shell"
 Assert-True (Test-Call '^--terminate Dotfiles-Test$') "fresh up should terminate once so wsl.conf takes effect"
 Assert-True ($script:PasswordSetCount -eq 1) "fresh up should set the new Linux user's password"
@@ -313,7 +337,27 @@ Invoke-WslUp `
 
 Assert-True (-not (Test-Call '^--install ')) "idempotent up should not reinstall an existing distro"
 Assert-True ($script:PasswordSetCount -eq 0) "idempotent up should not reset an existing user's password"
-Assert-True (Test-Call 'scripts/validate_setup\.sh') "idempotent up should still validate the distro"
+Assert-True (Test-RootScript 'scripts/validate_setup\.sh') "idempotent up should still validate the distro"
+
+Reset-WslMock -Registered $true -UserExists $true -UserPasswordSet $false
+Invoke-WslUp `
+    -Distro "Ubuntu-26.04" `
+    -Name "Dotfiles-Test" `
+    -UserName "tester" `
+    -LinuxPassword $testPassword `
+    -NoLaunch
+Assert-True ($script:PasswordSetCount -eq 1) "up should repair an existing user left without a usable password"
+Assert-True (Test-Call 'sudo -n true') "up should verify temporary passwordless sudo before bootstrap"
+
+Reset-WslMock -Registered $true -UserExists $true -BootstrapSudoWorks $false
+Assert-Throws {
+    Invoke-WslUp `
+        -Distro "Ubuntu-26.04" `
+        -Name "Dotfiles-Test" `
+        -UserName "tester" `
+        -NoLaunch
+} "up should fail before bootstrap when temporary passwordless sudo is unavailable"
+Assert-True (-not (Test-RootScript 'raw\.githubusercontent\.com/aziz0220/dotfiles/main/install')) "sudo readiness failure should not start bootstrap"
 
 Reset-WslMock -Registered $true -UserExists $true -FailBootstrap $true
 Assert-Throws {

@@ -1,5 +1,9 @@
-wsl_ssh_port: "{{ 2200 + (ansible_facts.distribution_major_version | int) }}"
-wsl_ttyd_port: "{{ 7600 + (ansible_facts.distribution_major_version | int) }}"
+wsl_instance_name: >-
+  {{ lookup('env', 'WSL_DISTRO_NAME')
+     | default(ansible_facts.distribution ~ '-' ~ ansible_facts.distribution_version, true) }}
+wsl_instance_port_offset: "{{ ((wsl_instance_name | hash('sha1'))[0:4] | int(base=16)) % 10000 }}"
+wsl_ssh_port: "{{ 20000 + (wsl_instance_port_offset | int) }}"
+wsl_ttyd_port: "{{ 30000 + (wsl_instance_port_offset | int) }}"
 
 systemd_services:
   - apparmor.service

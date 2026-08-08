@@ -174,6 +174,57 @@ function Test-LinuxUser {
     return $result.ExitCode -eq 0
 }
 
+function Test-LinuxUserPasswordSet {
+    param(
+        [string]$Name,
+        [string]$UserName
+    )
+
+    $result = Invoke-WslCommand `
+        -Arguments @("-d", $Name, "-u", "root", "--cd", "/", "--", "passwd", "--status", $UserName) `
+        -AllowFailure
+    if ($result.ExitCode -ne 0) {
+        return $false
+    }
+
+    $passwordPattern = '^' + [regex]::Escape($UserName) + '\s+P(?:\s|$)'
+    return @(
+        $result.Output |
+            Where-Object { $_ -match $passwordPattern }
+    ).Count -gt 0
+}
+
+function Test-BootstrapSudo {
+    param(
+        [string]$Name,
+        [string]$UserName
+    )
+
+    $result = Invoke-WslCommand `
+        -Arguments @("-d", $Name, "-u", $UserName, "--cd", "~", "--", "sudo", "-n", "true") `
+        -AllowFailure
+    return $result.ExitCode -eq 0
+}
+
+function Invoke-WslBashScript {
+    param(
+        [string]$Name,
+        [string]$UserName,
+        [string]$Script,
+        [string]$WorkingDirectory = "~",
+        [switch]$Interactive,
+        [switch]$AllowFailure
+    )
+
+    $encodedScript = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Script))
+    $transport = "exec bash <(printf %s $encodedScript | base64 -d)"
+
+    return Invoke-WslCommand `
+        -Arguments @("-d", $Name, "-u", $UserName, "--cd", $WorkingDirectory, "--", "bash", "-c", $transport) `
+        -Interactive:$Interactive `
+        -AllowFailure:$AllowFailure
+}
+
 function Invoke-WslRootScript {
     param(
         [string]$Name,
@@ -181,11 +232,11 @@ function Invoke-WslRootScript {
         [switch]$AllowFailure
     )
 
-    $encodedScript = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Script))
-    $transport = "set -o pipefail; printf %s $encodedScript | base64 -d | bash"
-
-    return Invoke-WslCommand `
-        -Arguments @("-d", $Name, "-u", "root", "--cd", "/", "--", "bash", "-lc", $transport) `
+    return Invoke-WslBashScript `
+        -Name $Name `
+        -UserName "root" `
+        -Script $Script `
+        -WorkingDirectory "/" `
         -AllowFailure:$AllowFailure
 }
 
@@ -351,9 +402,14 @@ function Invoke-WslBootstrap {
         [string]$UserName
     )
 
-    $command = "set -euo pipefail; bash <(curl -fsSL '$script:InstallUrl')"
-    Invoke-WslCommand `
-        -Arguments @("-d", $Name, "-u", $UserName, "--cd", "~", "--", "bash", "-lc", $command) `
+    $scriptBody = @"
+set -euo pipefail
+bash <(curl -fsSL '$script:InstallUrl')
+"@
+    Invoke-WslBashScript `
+        -Name $Name `
+        -UserName $UserName `
+        -Script $scriptBody `
         -Interactive | Out-Null
 }
 
@@ -363,9 +419,15 @@ function Invoke-WslValidation {
         [string]$UserName
     )
 
-    $command = 'set -euo pipefail; cd "$HOME/dotfiles"; ./scripts/validate_setup.sh'
-    Invoke-WslCommand `
-        -Arguments @("-d", $Name, "-u", $UserName, "--cd", "~", "--", "bash", "-lc", $command) `
+    $scriptBody = @'
+set -euo pipefail
+cd "$HOME/dotfiles"
+./scripts/validate_setup.sh
+'@
+    Invoke-WslBashScript `
+        -Name $Name `
+        -UserName $UserName `
+        -Script $scriptBody `
         -Interactive | Out-Null
 }
 
@@ -518,16 +580,26 @@ function Invoke-WslUp {
     }
 
     $newUser = -not (Test-LinuxUser -Name $Name -UserName $UserName)
+    $passwordSet = if ($newUser) {
+        $false
+    }
+    else {
+        Test-LinuxUserPasswordSet -Name $Name -UserName $UserName
+    }
     Write-Stage "Preparing Linux user '$UserName'"
 
     try {
         Initialize-WslUser -Name $Name -UserName $UserName
 
-        if ($newUser) {
+        if (-not $passwordSet) {
             if ($null -eq $LinuxPassword) {
                 $LinuxPassword = Read-NewLinuxPassword -UserName $UserName
             }
             Set-LinuxUserPassword -Name $Name -UserName $UserName -Password $LinuxPassword
+        }
+
+        if (-not (Test-BootstrapSudo -Name $Name -UserName $UserName)) {
+            throw "Temporary passwordless sudo is unavailable for '$UserName' in '$Name'. User preparation did not complete safely."
         }
 
         Write-Stage "Bootstrapping '$Name'"
