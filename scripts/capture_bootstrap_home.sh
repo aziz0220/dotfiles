@@ -63,6 +63,20 @@ if [ "$INCLUDE_PRIVATE" = "true" ]; then
     ".gnupg"
     ".kube"
     ".aws"
+    # CLI auth tokens. Named individually, never whole directories: the parents
+    # hold caches measured in tens or hundreds of MB (.docker 19M, .fly 108M,
+    # .gemini 20M) around a few hundred bytes of actual credential.
+    ".config/gh"
+    ".config/stripe"
+    ".config/netlify/config.json"
+    ".config/neonctl"
+    ".kaggle"
+    ".huggingface"
+    ".railway/config.json"
+    ".docker/config.json"
+    ".fly/config.yml"
+    ".gemini/GEMINI.md"
+    ".claude.json"
   )
 fi
 

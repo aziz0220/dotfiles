@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Vault captures CLI auth tokens that previously existed only on one machine: `gh`, `stripe`, `netlify`, `neonctl`, `kaggle`, `huggingface`, `railway`, `docker`, `fly`, `gemini` and `.claude.json`
+- `validate_setup.sh` warns about uncommitted or unpushed work, and about repositories with no remote, before a rebuild discards them
 - Home restore backs up every file it overwrites to `~/.dotfiles-backup/<timestamp>/`, so restoring onto an out-of-date machine cannot silently discard uncaptured local edits
 - `ansible-run` warns when the clone is behind its upstream instead of silently provisioning from stale vars and a stale vault (`DOTFILES_SKIP_FETCH=1` to stay offline)
 - Professional README with badges, architecture diagram, and documentation
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.editorconfig` and `.pre-commit-config.yaml`
 
 ### Changed
+- Personal project repositories are no longer tracked or cloned; cloning, pushing and pulling your own work is the user's responsibility, since the provisioner cannot know about unpushed commits
 - `install` script rewritten for multi-platform support (WSL, cloud VM, bare metal)
 - `ansible-run` script improved with better error messages and environment detection
 - CI workflow modernized with `actions/setup-python` and `ansible-lint` action
