@@ -26,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ubuntu 26.04 compatibility treats obsolete snapshot libraries as release-inapplicable
 
 ### Fixed
+- Rewrite the capturing user's absolute home path to `$HOME` in captured shell rc files so a restored bundle works under any username
+- Default `validate_setup.sh` to the invoking user instead of a hardcoded account name
+- Derive WSL SSH and ttyd ports from the instance name so parallel distros do not collide
+- Install Ubuntu's native Docker Engine package without mistaking Docker Desktop's Windows CLI for a Linux installation
+- Run lifecycle payloads in a clean non-login Bash shell so incomplete restored profiles cannot block provisioning
+- Exclude repository `.git` internals from portable home snapshots and parity checks
+- Verify command-level non-interactive sudo access instead of using `sudo -v`, which can still prompt under mixed sudo policies
+- Encode interactive user bootstrap and validation Bash payloads while preserving terminal input for vault prompts
+- Repair partially created WSL users without a usable password and verify temporary passwordless sudo before bootstrap
 - Encode embedded root Bash scripts before passing them through Windows PowerShell 5.1 and `wsl.exe`, preserving variables and multiline commands
 - Preserve native `wsl.exe` exit-code handling when Windows PowerShell 5.1 reports harmless stderr warnings such as a failed root systemd user session
 - Skip redundant `wsl --set-version` conversion when a newly installed named distro is already WSL2

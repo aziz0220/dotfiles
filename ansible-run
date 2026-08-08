@@ -67,7 +67,10 @@ if [ "$(id -u)" -ne 0 ]; then
     done
 
     if [ "$ask_become_pass" = false ]; then
-      sudo -v
+      if ! sudo -n true; then
+        echo "ERROR: sudo needs authentication. Rerun with --ask-become-pass or authenticate with sudo first." >&2
+        exit 1
+      fi
     fi
   else
     echo "ERROR: sudo is required for become tasks." >&2

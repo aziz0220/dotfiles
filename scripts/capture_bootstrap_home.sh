@@ -66,8 +66,19 @@ mkdir -p "$OUTPUT_HOME_DIR"
 for rel in "${INCLUDE_PATHS[@]}"; do
   src="$SOURCE_HOME/$rel"
   if [ -e "$src" ]; then
-    rsync -a --relative "$SOURCE_HOME/./$rel" "$OUTPUT_HOME_DIR/"
+    rsync -a --relative --exclude='.git/' "$SOURCE_HOME/./$rel" "$OUTPUT_HOME_DIR/"
   fi
+done
+
+# Rewrite the capturing user's absolute home path so the bundle restores under
+# any username. Shell rc files only: $HOME expands there, but not in the JSON
+# and TOML configs that also carry absolute paths.
+# ponytail: those (.claude/settings.json, .codex/config.toml) hold regenerable
+# per-machine state, so leaving them stale is harmless. Revisit only if a
+# non-shell config ever holds a path something actually depends on.
+for rel in .zshrc .zshenv .bashrc .profile; do
+  rc="$OUTPUT_HOME_DIR/$rel"
+  [ -f "$rc" ] && sed -i "s|${SOURCE_HOME%/}|\$HOME|g" "$rc"
 done
 
 # Remove host-specific or runtime artifacts that should not be replicated.

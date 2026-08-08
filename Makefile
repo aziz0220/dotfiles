@@ -20,6 +20,7 @@ lint: ## Run all linters
 	@echo "→ Ansible syntax check"; ansible-playbook --syntax-check -i inventory.ini local.yml
 	@echo "→ Ansible lint"; PYTHONWARNINGS=ignore::DeprecationWarning ansible-lint local.yml
 	@echo "→ Regression tests"; bash test/ansible_run_test.sh
+	@echo "→ Home state tests"; bash test/home_state_test.sh
 	@echo "→ WSL lifecycle tests"; bash test/wsl_lifecycle_test.sh
 	@echo "✓ All lints passed"
 

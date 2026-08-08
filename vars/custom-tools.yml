@@ -35,9 +35,9 @@ custom_tools:
       mv /tmp/kind /usr/local/bin/kind
     become: true
   - name: docker
-    check_cmd: "command -v docker"
+    check_cmd: "test -x /usr/bin/docker"
     install_cmd: |
-      curl -fsSL https://get.docker.com | sh &&
+      DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io &&
       usermod -aG docker {{ user_name }}
     become: true
   - name: cloudflared

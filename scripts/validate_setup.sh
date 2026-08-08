@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PLAYBOOK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-USER_NAME="${1:-aziz0220}"
+USER_NAME="${1:-$(id -un)}"
 USER_HOME="${2:-/home/$USER_NAME}"
 BOOTSTRAP_HOME_DIR="${3:-$PLAYBOOK_DIR/.bootstrap/home}"
 
@@ -208,7 +208,10 @@ if [ -d "$BOOTSTRAP_HOME_DIR" ]; then
       fail "missing home entry: $USER_HOME/$rel_path"
       home_missing=$((home_missing + 1))
     fi
-  done < <(cd "$BOOTSTRAP_HOME_DIR" && find . -mindepth 1 -printf '%P\n' | sort)
+  done < <(
+    cd "$BOOTSTRAP_HOME_DIR"
+    find . -mindepth 1 -type d -name .git -prune -o -printf '%P\n' | sort
+  )
 
   if [ "$home_missing" -eq 0 ]; then
     pass "home parity OK"
