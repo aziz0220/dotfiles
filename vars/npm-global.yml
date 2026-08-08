@@ -4,5 +4,4 @@ npm_global_packages:
   - "@railway/cli"
   - "cloc"
   - "cm"
-  - "opencode-ai"
   - "vercel"
