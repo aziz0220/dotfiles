@@ -54,11 +54,17 @@
   when: not bootstrap_home_tree.stat.exists
 
 - name: Copy bootstrap home tree to target home
+  vars:
+    # Restoring overwrites live dotfiles. Keep whatever it replaces so an
+    # out-of-date machine cannot silently lose uncaptured local edits.
+    _restore_backup_dir: "{{ user_home }}/.dotfiles-backup/{{ ansible_date_time.iso8601_basic_short }}"
   ansible.builtin.command:
     argv:
       - rsync
       - -a
       - --itemize-changes
+      - --backup
+      - "--backup-dir={{ _restore_backup_dir }}"
       - "--chown={{ user_name }}:{{ user_name }}"
       - --exclude=.nvm
       - --exclude=.cache

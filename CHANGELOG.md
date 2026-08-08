@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Home restore backs up every file it overwrites to `~/.dotfiles-backup/<timestamp>/`, so restoring onto an out-of-date machine cannot silently discard uncaptured local edits
+- `ansible-run` warns when the clone is behind its upstream instead of silently provisioning from stale vars and a stale vault (`DOTFILES_SKIP_FETCH=1` to stay offline)
 - Professional README with badges, architecture diagram, and documentation
 - One-command bootstrap via `bash <(curl -fsSL ...)` — auto-installs dependencies, prompts for vault password
 - One-command Windows PowerShell lifecycle for installing, bootstrapping, validating, launching, exporting, and removing isolated, named WSL distros
