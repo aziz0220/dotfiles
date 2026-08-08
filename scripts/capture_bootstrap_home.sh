@@ -45,9 +45,15 @@ declare -a INCLUDE_PATHS=(
   ".config/alacritty"
   ".config/tmux"
   ".oh-my-zsh/custom"
-  ".claude"
-  ".codex"
-  ".local/bin"
+  # Agent config only. The parent directories accumulate GBs of regenerable
+  # state (plugin caches, session transcripts, sqlite logs) that must not enter
+  # a bundle committed to a public repo -- GitHub rejects files over 100MB, and
+  # transcripts are not ours to publish. Add specific config paths here.
+  ".claude/settings.json"
+  ".codex/config.toml"
+  ".codex/skills"
+  # .local/bin deliberately omitted: every entry is an installed binary that
+  # custom_tools, cargo, or npm reinstalls. Capturing it added 1.3GB.
   "bin"
 )
 
