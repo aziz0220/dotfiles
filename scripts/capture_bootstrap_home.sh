@@ -86,7 +86,12 @@ mkdir -p "$OUTPUT_HOME_DIR"
 for rel in "${INCLUDE_PATHS[@]}"; do
   src="$SOURCE_HOME/$rel"
   if [ -e "$src" ]; then
-    rsync -a --relative --exclude='.git/' "$SOURCE_HOME/./$rel" "$OUTPUT_HOME_DIR/"
+    # --copy-unsafe-links dereferences symlinks pointing outside the captured
+    # tree, so the bundle is self-contained. Without it, a WSL setup where
+    # ~/.aws is a symlink to /mnt/c/Users/<n>/.aws captured the dangling link
+    # instead of the credentials, and restoring on any non-WSL machine gave a
+    # dead symlink. Relative links inside the tree stay links.
+    rsync -a --relative --copy-unsafe-links --exclude='.git/' "$SOURCE_HOME/./$rel" "$OUTPUT_HOME_DIR/"
   fi
 done
 

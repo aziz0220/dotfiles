@@ -1,18 +1,17 @@
 ---
 - name: Compute user supplemental groups
   ansible.builtin.set_fact:
-    _user_group_names: "{{ user_groups | map(attribute='name') | reject('equalto', user_name) | list }}"
+    _user_group_names: "{{ user_groups | reject('equalto', user_name) | list }}"
 
+# No gid: the system picks a free one. Forcing a captured gid collided with the
+# primary group of any user whose uid differed from the capturing machine's.
+# Without a gid this is a genuine no-op for groups that already exist, so real
+# failures surface instead of being masked by an "already exists" check.
 - name: Ensure required groups exist
   ansible.builtin.group:
-    name: "{{ item.name }}"
-    gid: "{{ item.gid }}"
+    name: "{{ item }}"
     state: present
   loop: "{{ user_groups }}"
-  register: _group_results
-  failed_when:
-    - _group_results is failed
-    - '"already exists" not in _group_results.msg | default("")'
 
 - name: Ensure primary user group exists
   ansible.builtin.group:
