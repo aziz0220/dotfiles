@@ -1,7 +1,14 @@
 custom_tools:
+  # Native installer, not npm. The captured .claude.json records the install
+  # location, and this machine uses the native layout
+  # (~/.local/bin/claude -> ~/.local/share/claude/versions/N). Installing via
+  # npm puts the binary in nvm's bin instead, so a restored config pointed at a
+  # path that did not exist and Claude Code reported itself missing or broken.
+  # check_cmd asserts the path the config expects, not merely that some claude
+  # is on PATH.
   - name: claude-code
-    check_cmd: "command -v claude"
-    install_cmd: "npm install -g @anthropic-ai/claude-code"
+    check_cmd: "test -x \"$HOME/.local/bin/claude\""
+    install_cmd: "curl -fsSL https://claude.ai/install.sh | bash"
     become: false
   - name: opencode
     check_cmd: "command -v opencode"
