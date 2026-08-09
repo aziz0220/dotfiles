@@ -4,7 +4,7 @@ This file documents the conventions, architecture, and patterns used in this rep
 
 ## Repository Purpose
 
-A declarative, portable workstation bootstrap. One command provisions any Ubuntu machine (WSL2, cloud VM, bare metal) with dotfiles, secrets, packages, tools, and repos from an encrypted, version-controlled vault.
+A declarative, portable workstation bootstrap. One command provisions any Ubuntu machine (WSL2, cloud VM, bare metal) with dotfiles, secrets, packages, and tools from an encrypted, version-controlled vault. User project repositories are deliberately out of scope — `vars/repos.yml` holds tooling clones only.
 
 ## Tech Stack
 
@@ -26,7 +26,7 @@ install (bootstrap)
     → local.yml (main playbook)
       → roles/system_setup/   (system config)
       → roles/app_stack/      (packages, tools, runtimes)
-      → roles/home_restore/   (dotfiles, secrets, repos)
+      → roles/home_restore/   (dotfiles, secrets, tooling clones)
 ```
 
 Data sources:
