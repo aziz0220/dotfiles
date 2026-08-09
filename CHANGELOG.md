@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ubuntu 26.04 compatibility treats obsolete snapshot libraries as release-inapplicable
 
 ### Fixed
+- Create supplemental groups by name without pinning captured GIDs, which collided with the primary group of any user whose uid differed from the capturing machine's and aborted user creation
+- Dereference symlinks that escape the captured tree, so a WSL `~/.aws` pointing at `/mnt/c/...` is captured as real credentials instead of a link that dangles on every other machine
 - Rewrite the capturing user's absolute home path to `$HOME` in captured shell rc files so a restored bundle works under any username
 - Default `validate_setup.sh` to the invoking user instead of a hardcoded account name
 - Derive WSL SSH and ttyd ports from the instance name so parallel distros do not collide
