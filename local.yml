@@ -72,3 +72,11 @@
         - core
         - base
         - install
+
+    # Last: needs the tailscale binary that custom_tools installs above.
+    - name: Include tailnet setup tasks
+      ansible.builtin.include_tasks: tasks/tailnet.yml
+      tags:
+        - tailnet
+        - base
+        - install
