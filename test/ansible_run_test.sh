@@ -55,6 +55,15 @@ run_case dotfiles --check
 grep -q -- '--tags dotfiles' "$ANSIBLE_LOG" || fail "tag selection was not forwarded"
 grep -q -- '--check' "$ANSIBLE_LOG" || fail "extra Ansible arguments were not forwarded"
 
+# Identity is detected at runtime; the login shell is not. Passing the invoking
+# shell as -e overrode vars/user-profile.yml, so provisioning from bash on a
+# fresh machine reset the account to bash on every run.
+SHELL=/bin/bash run_case
+grep -q -- '-e user_name=' "$ANSIBLE_LOG" || fail "runtime identity was not passed"
+if grep -q -- '-e user_shell=' "$ANSIBLE_LOG"; then
+  fail "login shell must come from vars, not the invoking shell"
+fi
+
 run_case
 if ! grep -qx -- '-n true' "$SUDO_LOG"; then
   fail "sudo should verify non-interactive command access without refreshing credentials"
