@@ -51,16 +51,17 @@ CURRENT_USER="$(whoami)"
 CURRENT_HOME="$HOME"
 CURRENT_UID="$(id -u)"
 CURRENT_GID="$(id -g)"
-CURRENT_SHELL="$(basename "${SHELL:-/bin/zsh}")"
-CURRENT_SHELL_PATH="$(command -v "$CURRENT_SHELL" 2>/dev/null || printf '/usr/bin/zsh')"
-
+# Identity is detected; the login shell deliberately is not. $SHELL is whatever
+# shell happens to be invoking this -- on a fresh Ubuntu that is bash, and
+# passing it as -e overrode the zsh in vars/user-profile.yml, so provisioning
+# set the account back to bash every time. The desired shell is configuration,
+# not an ambient property of the current terminal, so it stays in vars.
 ANSIBLE_CMD=(
   ansible-playbook "$PLAYBOOK"
   -e "user_name=$CURRENT_USER"
   -e "user_home=$CURRENT_HOME"
   -e "user_uid=$CURRENT_UID"
   -e "user_gid=$CURRENT_GID"
-  -e "user_shell=$CURRENT_SHELL_PATH"
 )
 
 if [ "$TAG_SET" != "all" ]; then

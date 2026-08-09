@@ -19,6 +19,22 @@
     gid: "{{ user_gid }}"
     state: present
 
+# home_restore runs before app_stack installs packages, so on a first
+# provision the configured shell is not on disk yet. Assigning a missing shell
+# leaves an account that cannot open a login session if the run dies before
+# app_stack gets there.
+- name: Check configured login shell
+  ansible.builtin.stat:
+    path: "{{ user_shell }}"
+  register: _login_shell
+
+- name: Install configured login shell when missing
+  ansible.builtin.package:
+    name: "{{ user_shell | basename }}"
+    state: present
+  become: true
+  when: not _login_shell.stat.exists
+
 - name: Ensure primary user exists
   ansible.builtin.user:
     name: "{{ user_name }}"
