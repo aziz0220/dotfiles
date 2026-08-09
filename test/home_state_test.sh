@@ -27,6 +27,14 @@ fi
 # shellcheck disable=SC2016  # matching literal $HOME/$PATH in the captured file
 grep -q '^export PATH=\$HOME/\.opencode/bin:\$PATH$' "$CAPTURE_HOME/.zshrc"
 
+# home_restore rewrites the captured home path in JSON/TOML configs, which have
+# no $HOME expansion. It can only do that if capture recorded where the bundle
+# came from.
+if [ "$(cat "$CAPTURE_HOME/.dotfiles-captured-home")" != "$SOURCE_HOME" ]; then
+  printf 'FAIL: capture did not record the source home path for restore-time rewriting\n' >&2
+  exit 1
+fi
+
 mkdir -p "$CAPTURE_HOME/.config/nvim/.git/objects/pack"
 printf 'snapshot\n' > "$CAPTURE_HOME/.config/nvim/.git/objects/pack/snapshot.pack"
 
