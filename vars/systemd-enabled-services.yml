@@ -16,7 +16,12 @@ systemd_services:
   - dpkg-db-backup.timer
   - e2scrub_all.timer
   - fstrim.timer
-  - getty@tty1.service
+  # getty@tty1.service is deliberately absent. It was captured from a headless
+  # WSL host, where it is enabled. Applying it with state: started on a desktop
+  # evicts the GUI: gdm3.service declares Conflicts=getty@tty1.service, so
+  # starting the getty makes systemd stop GDM, dropping the user to a text
+  # login on tty1 mid-provision. systemd allocates TTYs on demand via
+  # getty.target and autovt@; nothing here needs to force one.
   - irqbalance.service
   - keyboard-setup.service
   - logrotate.timer
