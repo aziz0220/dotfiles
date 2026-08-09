@@ -43,6 +43,21 @@ vault_fingerprint() {
   sha256sum "$ENCRYPTED_HOME_BUNDLE" 2>/dev/null | awk '{print $1}'
 }
 
+# ./install prompts for the passphrase; this script only ever errored. That
+# dead-ended the ordinary "delete the decrypted tree and rerun" path, where the
+# vault is the sole source of the secrets being restored. Prompt when there is
+# a terminal to prompt on, and keep failing loudly when there is not, so CI and
+# other non-interactive callers behave exactly as before.
+prompt_vault_password() {
+  [ -t 0 ] || return 1
+  [ -f "$ENCRYPTED_HOME_BUNDLE" ] || return 1
+  printf 'Vault passphrase: ' >&2
+  read -r -s SETUP_SECRETS_PASSWORD
+  printf '\n' >&2
+  [ -n "${SETUP_SECRETS_PASSWORD}" ] || return 1
+  export SETUP_SECRETS_PASSWORD
+}
+
 bootstrap_home_is_stale() {
   [ -f "$ENCRYPTED_HOME_BUNDLE" ] || return 1
   if [ -f "$VAULT_STAMP" ]; then
@@ -57,7 +72,7 @@ bootstrap_home_is_stale() {
 
 if [ ! -d "$BOOTSTRAP_HOME_DIR" ]; then
   if [ -f "$ENCRYPTED_HOME_BUNDLE" ]; then
-    if [ -z "${SETUP_SECRETS_PASSWORD-}" ]; then
+    if [ -z "${SETUP_SECRETS_PASSWORD-}" ] && ! prompt_vault_password; then
       echo "ERROR: missing $BOOTSTRAP_HOME_DIR and encrypted bundle exists at $ENCRYPTED_HOME_BUNDLE." >&2
       echo "Set SETUP_SECRETS_PASSWORD and rerun ./ansible-run to decrypt automatically." >&2
       exit 1
@@ -70,6 +85,10 @@ if [ ! -d "$BOOTSTRAP_HOME_DIR" ]; then
     exit 1
   fi
 elif bootstrap_home_is_stale; then
+  if [ -z "${SETUP_SECRETS_PASSWORD-}" ]; then
+    echo "NOTE: the vault changed since $BOOTSTRAP_HOME_DIR was decrypted." >&2
+    prompt_vault_password || true
+  fi
   if [ -n "${SETUP_SECRETS_PASSWORD-}" ]; then
     echo "NOTE: the vault changed since $BOOTSTRAP_HOME_DIR was decrypted; refreshing it."
     "$REPO_DIR/scripts/decrypt_home_bundle.sh" "$ENCRYPTED_HOME_BUNDLE" "$BOOTSTRAP_HOME_DIR" "SETUP_SECRETS_PASSWORD"
