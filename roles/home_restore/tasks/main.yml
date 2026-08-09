@@ -52,6 +52,33 @@
       or create {{ bootstrap_home_dir }} before running.
   when: not bootstrap_home_tree.stat.exists
 
+# Shell rc files were rewritten to $HOME at capture time, but JSON and TOML
+# configs (agent plugin manifests, editor settings) hold the capturing user's
+# literal home path and have no variable expansion. Rewrite them in the staged
+# tree -- small and disposable -- rather than after they land in a real home.
+- name: Read captured home path
+  ansible.builtin.slurp:
+    src: "{{ bootstrap_home_dir }}/.dotfiles-captured-home"
+  register: _captured_home_raw
+  failed_when: false
+  when: bootstrap_home_tree.stat.exists
+
+- name: Rewrite captured home path in staged config files
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      captured={{ _captured_home | quote }}
+      grep -rlIZ -- "$captured" {{ bootstrap_home_dir | quote }} 2>/dev/null |
+        xargs -0 -r sed -i "s|$captured|{{ user_home }}|g"
+  vars:
+    _captured_home: "{{ (_captured_home_raw.content | default('') | b64decode | trim) }}"
+  register: _home_path_rewrite
+  changed_when: _home_path_rewrite.rc == 0
+  when:
+    - bootstrap_home_tree.stat.exists
+    - _captured_home | length > 0
+    - _captured_home != user_home
+
 - name: Copy bootstrap home tree to target home
   vars:
     # Restoring overwrites live dotfiles. Keep whatever it replaces so an
@@ -67,6 +94,7 @@
       - "--chown={{ user_name }}:{{ user_name }}"
       - --exclude=.nvm
       - --exclude=.cache
+      - --exclude=.dotfiles-captured-home
       - "{{ bootstrap_home_dir }}/"
       - "{{ user_home }}/"
   register: _home_restore_rsync

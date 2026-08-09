@@ -50,8 +50,13 @@ declare -a INCLUDE_PATHS=(
   # a bundle committed to a public repo -- GitHub rejects files over 100MB, and
   # transcripts are not ours to publish. Add specific config paths here.
   ".claude/settings.json"
+  # Which plugins/marketplaces are installed, not the 627MB of plugin payload.
+  # The new machine reinstalls them from these manifests.
+  ".claude/plugins/installed_plugins.json"
+  ".claude/plugins/known_marketplaces.json"
   ".codex/config.toml"
   ".codex/skills"
+  ".codex/memories"
   # .local/bin deliberately omitted: every entry is an installed binary that
   # custom_tools, cargo, or npm reinstalls. Capturing it added 1.3GB.
   "bin"
@@ -77,6 +82,21 @@ if [ "$INCLUDE_PRIVATE" = "true" ]; then
     ".fly/config.yml"
     ".gemini/GEMINI.md"
     ".claude.json"
+    # Agent/editor CLI logins. Without these the tools restore fully configured
+    # but signed out, which is the one thing a restored machine should not
+    # make you redo by hand.
+    ".claude/.credentials.json"
+    ".copilot/config.json"
+    ".junie/secure_credentials.json"
+    ".junie/settings.json"
+    ".junie/trust/authentication-key"
+    ".kimi-code/config.toml"
+    ".local/share/opencode/auth.json"
+    ".local/share/opencode/account.json"
+    ".local/share/com.vercel.cli/auth.json"
+    ".local/share/com.vercel.cli/config.json"
+    ".config/openconnect-sso/config.toml"
+    "coderefactor.pem"
   )
 fi
 
@@ -105,6 +125,12 @@ for rel in .zshrc .zshenv .bashrc .profile; do
   rc="$OUTPUT_HOME_DIR/$rel"
   [ -f "$rc" ] && sed -i "s|${SOURCE_HOME%/}|\$HOME|g" "$rc"
 done
+
+# Record where this bundle was captured from. JSON and TOML configs cannot use
+# $HOME, so home_restore rewrites the literal path in them at restore time --
+# it needs to know what to look for, and guessing from the file contents would
+# be worse than being told.
+printf '%s\n' "${SOURCE_HOME%/}" > "$OUTPUT_HOME_DIR/.dotfiles-captured-home"
 
 # Remove host-specific or runtime artifacts that should not be replicated.
 rm -f "$OUTPUT_HOME_DIR/.ssh/known_hosts" "$OUTPUT_HOME_DIR/.ssh/known_hosts.old" || true
