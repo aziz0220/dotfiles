@@ -1,4 +1,5 @@
 .bootstrap/home
+.bootstrap/.vault-stamp
 .bootstrap/*.tar
 .bootstrap/*.tar.gz
 .bootstrap/*.tmp

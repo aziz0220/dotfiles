@@ -64,6 +64,28 @@ if grep -q -- '-e user_shell=' "$ANSIBLE_LOG"; then
   fail "login shell must come from vars, not the invoking shell"
 fi
 
+# The decrypted tree caches the vault. A vault newer than the tree means a
+# pull brought new secrets that were never decrypted, and restoring the stale
+# tree silently applies the old ones.
+STALE_BUNDLE="$TEST_DIR/vault.aes256"
+printf 'ciphertext\n' > "$STALE_BUNDLE"
+touch -d '+1 hour' "$STALE_BUNDLE"
+STALE_WARN="$TEST_DIR/stale.log"
+: > "$ANSIBLE_LOG"
+DOTFILES_SKIP_FETCH=1 ENCRYPTED_HOME_BUNDLE="$STALE_BUNDLE" \
+  bash "$REPO_DIR/ansible-run" >/dev/null 2>"$STALE_WARN"
+grep -qi 'vault is newer' "$STALE_WARN" || fail "a vault newer than the decrypted tree was not reported"
+grep -q -- '-e user_name=' "$ANSIBLE_LOG" || fail "a stale vault warning must not stop the run"
+
+# A tree newer than the vault is the capture workflow, not a stale cache.
+touch -d '-1 hour' "$STALE_BUNDLE"
+: > "$STALE_WARN"
+DOTFILES_SKIP_FETCH=1 ENCRYPTED_HOME_BUNDLE="$STALE_BUNDLE" \
+  bash "$REPO_DIR/ansible-run" >/dev/null 2>"$STALE_WARN"
+if grep -qi 'vault is newer' "$STALE_WARN"; then
+  fail "a freshly captured tree must not be reported as stale"
+fi
+
 run_case
 if ! grep -qx -- '-n true' "$SUDO_LOG"; then
   fail "sudo should verify non-interactive command access without refreshing credentials"
