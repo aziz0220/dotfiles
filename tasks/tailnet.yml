@@ -93,13 +93,31 @@
     - tailnet
     - install
 
+# A machine that joined the tailnet before this repo managed it -- or joined
+# without --ssh -- is connected but unreachable. The join task above is skipped
+# for it, so without this the machine silently never becomes SSH-able.
+# `tailscale set` changes preferences on a running node without re-authing.
+- name: Enable Tailscale SSH on an already-connected node
+  ansible.builtin.command: tailscale set --ssh
+  become: true
+  register: _tailscale_set_ssh
+  changed_when: _tailscale_set_ssh.rc == 0
+  failed_when: false
+  when:
+    - _tailscale_bin.rc == 0
+    - _tailnet_connected | default(false)
+  tags:
+    - tailnet
+    - install
+
 - name: Report tailnet state
   ansible.builtin.debug:
     msg: >-
       {% if _tailscale_bin.rc != 0 %}
       tailscale is not installed; run the node tag first.
       {% elif _tailnet_connected | default(false) %}
-      Already on the tailnet. Tailscale SSH stays enabled.
+      Already on the tailnet; Tailscale SSH
+      {{ 'enabled.' if (_tailscale_set_ssh is defined and _tailscale_set_ssh.rc == 0) else 'could not be enabled -- run `sudo tailscale set --ssh` by hand.' }}
       {% elif (_tailnet_authkey | default('') | length) == 0 %}
       Not on the tailnet and no auth key found. Run `sudo tailscale up --ssh`
       once and approve it in the browser, or drop a key at
