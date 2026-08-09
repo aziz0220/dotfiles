@@ -1,0 +1,115 @@
+---
+# Joins this machine to the tailnet and turns on Tailscale SSH, so every
+# provisioned machine can reach every other one without key distribution,
+# port forwarding, or a public SSH port.
+#
+# Runs after node-setup because custom_tools installs the tailscale binary.
+#
+# Never fails the play. A machine that cannot join the tailnet is still a
+# perfectly good machine, and a provision run that aborts here would leave the
+# rest of the setup unapplied for the sake of a network convenience.
+
+# shell, not command: `command -v` is a shell builtin, and running it through
+# the command module looks for a binary called "command", which never exists.
+# That silently reported tailscale as missing on every machine.
+- name: Check for tailscale binary
+  ansible.builtin.shell: command -v tailscale # noqa: command-instead-of-shell
+  register: _tailscale_bin
+  changed_when: false
+  failed_when: false
+  tags:
+    - tailnet
+    - install
+
+- name: Ensure tailscaled is enabled and running
+  ansible.builtin.systemd:
+    name: tailscaled
+    enabled: true
+    state: started
+  become: true
+  register: _tailscaled_unit
+  failed_when: false
+  when: _tailscale_bin.rc == 0
+  tags:
+    - tailnet
+    - install
+
+- name: Read tailnet backend state
+  ansible.builtin.command: tailscale status --json
+  register: _tailscale_status
+  changed_when: false
+  failed_when: false
+  when:
+    - _tailscale_bin.rc == 0
+    - _tailscaled_unit is not failed
+  tags:
+    - tailnet
+    - install
+
+# An auth key makes joining unattended. TS_AUTHKEY wins so a key can be passed
+# for one run without ever touching disk; the vault copy is the "instant on
+# every new machine" path.
+- name: Locate a tailnet auth key
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.config/tailscale/authkey"
+  register: _tailscale_authkey_file
+  tags:
+    - tailnet
+    - install
+
+- name: Resolve tailnet facts
+  no_log: true
+  ansible.builtin.set_fact:
+    _tailnet_connected: >-
+      {{ (_tailscale_status.stdout | default('{}') | from_json).BackendState | default('') == 'Running' }}
+    _tailnet_authkey: >-
+      {{ lookup('env', 'TS_AUTHKEY')
+         | default(lookup('file', user_home ~ '/.config/tailscale/authkey', errors='ignore') | default('', true), true)
+         | trim }}
+  when: _tailscale_bin.rc == 0
+  tags:
+    - tailnet
+    - install
+
+- name: Join the tailnet with Tailscale SSH enabled
+  ansible.builtin.command:
+    argv:
+      - tailscale
+      - up
+      - --ssh
+      - --accept-routes
+      - "--hostname={{ ansible_facts.hostname }}"
+      - "--auth-key={{ _tailnet_authkey }}"
+  become: true
+  register: _tailscale_up
+  changed_when: _tailscale_up.rc == 0
+  failed_when: false
+  no_log: true
+  when:
+    - _tailscale_bin.rc == 0
+    - not (_tailnet_connected | default(false))
+    - _tailnet_authkey | default('') | length > 0
+  tags:
+    - tailnet
+    - install
+
+- name: Report tailnet state
+  ansible.builtin.debug:
+    msg: >-
+      {% if _tailscale_bin.rc != 0 %}
+      tailscale is not installed; run the node tag first.
+      {% elif _tailnet_connected | default(false) %}
+      Already on the tailnet. Tailscale SSH stays enabled.
+      {% elif (_tailnet_authkey | default('') | length) == 0 %}
+      Not on the tailnet and no auth key found. Run `sudo tailscale up --ssh`
+      once and approve it in the browser, or drop a key at
+      {{ user_home }}/.config/tailscale/authkey to make this automatic.
+      {% elif _tailscale_up is defined and _tailscale_up.rc == 0 %}
+      Joined the tailnet with Tailscale SSH enabled.
+      {% else %}
+      Auth key was rejected, most likely expired. Generate a new one at
+      https://login.tailscale.com/admin/settings/keys, then re-run.
+      {% endif %}
+  tags:
+    - tailnet
+    - install

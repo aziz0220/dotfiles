@@ -234,6 +234,37 @@ Before rebuilding or discarding a machine, check what only exists there:
 `~/.dotfiles-backup/<timestamp>/`, mirroring its original path. If a restore clobbers a local edit
 you had not captured, the previous version is there.
 
+### Reaching your machines from each other
+
+Provisioning enables `tailscaled` and turns on **Tailscale SSH**, so every machine
+you provision can reach every other one:
+
+```bash
+ssh <you>@<machine-name>      # MagicDNS name, from any machine on the tailnet
+```
+
+No port forwarding, no public SSH port, and no `authorized_keys` to copy around —
+the tailnet identity *is* the SSH credential, and access is revoked from the
+Tailscale admin console rather than by editing every machine. Ordinary SSH on the
+wire, so Termius and friends work unchanged. The `openssh-server` you already have
+stays as a local-network fallback for when Tailscale is logged out or down.
+
+Joining a tailnet needs a credential; there is no way around that. Either is fine:
+
+```bash
+sudo tailscale up --ssh                                  # once per machine, approve in a browser
+printf '%s\n' tskey-auth-... > ~/.config/tailscale/authkey   # or make it unattended
+TS_AUTHKEY=tskey-auth-... ./ansible-run tailnet          # or pass it for a single run
+```
+
+An auth key from <https://login.tailscale.com/admin/settings/keys> lets a new
+machine join with no interaction. Keys expire after at most 90 days, so an
+unattended setup needs the key refreshed occasionally; when it lapses,
+provisioning prints the manual command instead of failing.
+
+Nothing here aborts a run. A machine that cannot reach the tailnet is still a
+working machine, so every task reports and continues.
+
 ### Staying in sync
 
 `ansible-run` fetches before it provisions and warns when your clone is behind `origin`, so you do
