@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.editorconfig` and `.pre-commit-config.yaml`
 
 ### Changed
+- Documentation states what is deliberately *not* restored — project repositories, unpushed work, remote-less repos — instead of advertising "repos" as a restored category, and documents the `~/.dotfiles-backup/<timestamp>/` safety net, the behind-origin warning, `DOTFILES_SKIP_FETCH`, `INCLUDE_PRIVATE`, and username independence
 - Personal project repositories are no longer tracked or cloned; cloning, pushing and pulling your own work is the user's responsibility, since the provisioner cannot know about unpushed commits
 - `install` script rewritten for multi-platform support (WSL, cloud VM, bare metal)
 - `ansible-run` script improved with better error messages and environment detection

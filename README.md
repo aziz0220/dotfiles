@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Dotfiles</h1>
-  <p><strong>One command to restore your entire development environment — dotfiles, secrets, packages, tools, and repos.</strong></p>
+  <p><strong>One command to restore your entire development environment — dotfiles, secrets, packages, and tools.</strong></p>
 
   <p>
     <a href="https://github.com/aziz0220/dotfiles/actions/workflows/ci.yml">
@@ -26,17 +26,20 @@
 
 ---
 
-Provision any Ubuntu machine — WSL2, cloud VM, bare metal, or VM — with your complete development environment in a single command. Your dotfiles, SSH keys, GPG keys, cloud credentials, packages, CLI tools, runtimes, and repos are restored from an encrypted, version-controlled source of truth.
+Provision any Ubuntu machine — WSL2, cloud VM, bare metal, or VM — with your complete development environment in a single command. Your dotfiles, SSH keys, GPG keys, cloud credentials, packages, CLI tools, and runtimes are restored from an encrypted, version-controlled source of truth.
+
+Your own project repositories are **not** part of that source of truth — see [What gets restored](#what-gets-restored-and-what-does-not).
 
 ## Features
 
 - **One-command bootstrap** — `curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install | bash`
 - **One-command WSL lifecycle** — create, bootstrap, validate, launch, export, or remove a distro from PowerShell
 - **Encrypted secrets** — SSH keys, GPG keys, AWS credentials, kube config stored in AES-256-CBC + PBKDF2 vault
-- **Declarative machine state** — packages, snaps, npm/pipx/cargo/gem packages, repos, runtimes all captured as version-controlled YAML
+- **Declarative machine state** — packages, snaps, npm/pipx/cargo/gem packages, runtimes all captured as version-controlled YAML
 - **Idempotent** — safe to run multiple times; only installs what's missing
 - **Tagged execution** — run only what you need: `./ansible-run dotfiles`, `./ansible-run node`, etc.
-- **Auto-detecting** — detects username, home, UID/GID, shell at runtime
+- **Username-independent** — restores under any account name; UID/GID, home path, and shell are detected at runtime and captured `$HOME` paths are rewritten
+- **Non-destructive** — every file a restore overwrites is kept in `~/.dotfiles-backup/<timestamp>/`
 - **Cross-distro compatible** — full provisioning on Ubuntu 22.04/24.04 plus Ubuntu 26.04 WSL home-restore coverage
 - **CI-verified** — every commit runs lint, validation, secret scan, multi-LTS provisioning, and a 26.04 regression
 - **Portable** — works on WSL2, cloud VMs (AWS, GCP, Azure), bare metal, VMware/VirtualBox
@@ -149,11 +152,23 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_bootstrap_home.sh
 ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 ```
 
+Both refuse to run without `ALLOW_REPO_OVERWRITE=1`. They rewrite the repository *from* this
+machine, which is the opposite of the normal direction — the repo is the source of truth. Re-encrypt
+and commit afterwards, or the capture stays local:
+
+```bash
+./scripts/encrypt_home_bundle.sh && git add -A && git commit
+```
+
 ### Validate setup
 
 ```bash
 ./scripts/validate_setup.sh
 ```
+
+Checks package, repository, custom-tool, login-shell, and home parity, then flags local work that
+exists only on this machine — uncommitted changes, unpushed commits, and repositories with no
+remote. Run it before rebuilding or discarding a machine.
 
 ## How It Works
 
@@ -187,11 +202,47 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 │  │  Data Sources                                     │   │
 │  │  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │   │
 │  │  │ vars/*.yml│  │ vault/   │  │ vars/repos.yml │  │   │
-│  │  │(captured │  │(encrypted│  │(git repo list)  │  │   │
-│  │  │ state)   │  │ secrets) │  │                 │  │   │
+│  │  │(captured │  │(encrypted│  │(tooling clones │  │   │
+│  │  │ state)   │  │ secrets) │  │ only)           │  │   │
 │  │  └──────────┘  └──────────┘  └────────────────┘  │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
+```
+
+### What gets restored, and what does not
+
+| Restored | Not restored |
+|---|---|
+| Shell config, `.gitconfig`, editor and terminal config | **Your own project repositories** |
+| SSH keys, GPG keys, AWS/kube config, CLI auth tokens | Anything uncommitted or unpushed, anywhere |
+| apt / snap / npm / pipx / cargo / gem / flatpak packages | Repos with no remote |
+| Node and SDKMAN runtimes, custom CLI tools | Caches, build output, `node_modules` |
+| Tooling clones only: `.oh-my-zsh`, `.nvm`, nvim plugins | |
+
+`vars/repos.yml` holds **tooling clones only** — things like oh-my-zsh and nvim plugins that
+happen to be distributed as git repos. Cloning, pushing, and pulling your own work is yours to
+manage: this repo cannot know about commits that exist on one machine and nowhere else, so it
+does not pretend to back them up.
+
+Before rebuilding or discarding a machine, check what only exists there:
+
+```bash
+./scripts/validate_setup.sh   # the "Local Work Safety" section flags unpushed and remote-less repos
+```
+
+**Restoring never silently overwrites.** Every file replaced by a home restore is copied first to
+`~/.dotfiles-backup/<timestamp>/`, mirroring its original path. If a restore clobbers a local edit
+you had not captured, the previous version is there.
+
+### Staying in sync
+
+`ansible-run` fetches before it provisions and warns when your clone is behind `origin`, so you do
+not restore an old vault over a newer machine. It warns rather than pulls — pulling would swap the
+playbook out mid-run. Update deliberately:
+
+```bash
+git pull --ff-only && ./ansible-run
+DOTFILES_SKIP_FETCH=1 ./ansible-run   # offline, skip the check
 ```
 
 ### Secrets architecture
@@ -253,7 +304,7 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 │   ├── cargo.yml           # Cargo-installed tools
 │   ├── gem.yml             # Ruby gems
 │   ├── flatpak.yml         # Flatpak applications
-│   ├── repos.yml           # Git repositories to clone
+│   ├── repos.yml           # Tooling clones only (oh-my-zsh, nvim plugins) — not your projects
 │   ├── runtimes.yml        # Node/SDKMAN runtime versions
 │   ├── custom-tools.yml    # One-off tool installers
 │   └── systemd-enabled-services.yml
@@ -269,10 +320,13 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 │   ├── encrypt_home_bundle.sh         # Encrypt secrets vault
 │   ├── rotate_vault_password.sh       # Change vault password
 │   ├── validate_setup.sh              # Post-provision validation
+│   ├── docker_sandbox.sh              # Throwaway container from the real vault
+│   ├── install_stripe.sh              # Stripe CLI installer (custom_tools)
 │   └── wsl.ps1                        # Windows-side WSL up/down lifecycle
 │
 ├── test/
 │   ├── ansible_run_test.sh            # Orchestrator regression test
+│   ├── home_state_test.sh             # Capture portability regression test
 │   ├── docker_test.sh                 # Docker home-restore regression
 │   ├── wsl_lifecycle_test.ps1         # Mocked PowerShell lifecycle tests
 │   └── wsl_lifecycle_test.sh          # Cross-platform test launcher
@@ -300,6 +354,9 @@ ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 | `ENCRYPTED_HOME_BUNDLE` | No | Override vault file path |
 | `ANSIBLE_PLAYBOOK_FILE` | No | Override playbook file (default: `local.yml`) |
 | `GITHUB_TOKEN` | No | Optional ephemeral authentication for the bootstrap repository |
+| `DOTFILES_SKIP_FETCH` | No | Set to `1` to skip the "your clone is behind origin" check (offline runs) |
+| `INCLUDE_PRIVATE` | No | Set to `false` to capture without SSH/GPG/cloud credentials |
+| `ALLOW_REPO_OVERWRITE` | For capture | Must be `1`; guards the scripts that overwrite the repo from the host |
 | `OLDPASS` | Vault rotation | Current vault password (when using `rotate_vault_password.sh`) |
 | `NEWPASS` | Vault rotation | New vault password (when using `rotate_vault_password.sh`) |
 
