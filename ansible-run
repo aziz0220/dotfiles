@@ -51,11 +51,25 @@ vault_fingerprint() {
 prompt_vault_password() {
   [ -t 0 ] || return 1
   [ -f "$ENCRYPTED_HOME_BUNDLE" ] || return 1
-  printf 'Vault passphrase: ' >&2
-  read -r -s SETUP_SECRETS_PASSWORD
-  printf '\n' >&2
-  [ -n "${SETUP_SECRETS_PASSWORD}" ] || return 1
-  export SETUP_SECRETS_PASSWORD
+  local attempt
+  # Retries, because the input is hidden: a keystroke that does not register
+  # looks identical to one that does, and giving up after a single empty Enter
+  # dropped through to a "missing bootstrap home" error that says nothing about
+  # the passphrase that was actually being asked for.
+  for attempt in 1 2 3; do
+    printf 'Vault passphrase (input hidden): ' >&2
+    read -r -s SETUP_SECRETS_PASSWORD
+    printf '\n' >&2
+    if [ -n "${SETUP_SECRETS_PASSWORD}" ]; then
+      export SETUP_SECRETS_PASSWORD
+      return 0
+    fi
+    if [ "$attempt" -lt 3 ]; then
+      echo "Nothing entered. Type the passphrase and press Enter; no characters are shown." >&2
+    fi
+  done
+  echo "No passphrase entered after 3 attempts." >&2
+  return 1
 }
 
 bootstrap_home_is_stale() {
