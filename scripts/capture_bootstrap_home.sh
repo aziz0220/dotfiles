@@ -96,6 +96,10 @@ if [ "$INCLUDE_PRIVATE" = "true" ]; then
     ".local/share/com.vercel.cli/auth.json"
     ".local/share/com.vercel.cli/config.json"
     ".config/openconnect-sso/config.toml"
+    # Tailnet auth key, so a new machine joins without anyone approving a
+    # browser prompt. Tailscale expires these within 90 days; when it lapses,
+    # tasks/tailnet.yml prints the manual command instead of failing.
+    ".config/tailscale/authkey"
     "coderefactor.pem"
   )
 fi
