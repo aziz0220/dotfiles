@@ -32,6 +32,29 @@ if [ "${DOTFILES_SKIP_FETCH:-0}" != "1" ] &&
   fi
 fi
 
+# The decrypted tree is a cache of the vault, so it has to be invalidated when
+# the vault changes. Decrypting only when the directory was absent meant a
+# `git pull` that brought a newer vault changed nothing: the stale tree was
+# still there, so every later run restored the old secrets while reporting
+# success. New credentials silently never arrived.
+VAULT_STAMP="$BOOTSTRAP_HOME_DIR/../.vault-stamp"
+
+vault_fingerprint() {
+  sha256sum "$ENCRYPTED_HOME_BUNDLE" 2>/dev/null | awk '{print $1}'
+}
+
+bootstrap_home_is_stale() {
+  [ -f "$ENCRYPTED_HOME_BUNDLE" ] || return 1
+  if [ -f "$VAULT_STAMP" ]; then
+    [ "$(vault_fingerprint)" != "$(cat "$VAULT_STAMP" 2>/dev/null)" ]
+  else
+    # No stamp: the tree predates stamping, or a capture wrote it. Only the
+    # first case needs refreshing, and a vault newer than the tree is what
+    # distinguishes them -- after a capture the tree is the newer of the two.
+    [ "$ENCRYPTED_HOME_BUNDLE" -nt "$BOOTSTRAP_HOME_DIR" ]
+  fi
+}
+
 if [ ! -d "$BOOTSTRAP_HOME_DIR" ]; then
   if [ -f "$ENCRYPTED_HOME_BUNDLE" ]; then
     if [ -z "${SETUP_SECRETS_PASSWORD-}" ]; then
@@ -40,10 +63,20 @@ if [ ! -d "$BOOTSTRAP_HOME_DIR" ]; then
       exit 1
     fi
     "$REPO_DIR/scripts/decrypt_home_bundle.sh" "$ENCRYPTED_HOME_BUNDLE" "$BOOTSTRAP_HOME_DIR" "SETUP_SECRETS_PASSWORD"
+    vault_fingerprint > "$VAULT_STAMP"
   else
     echo "ERROR: missing bootstrap home source at $BOOTSTRAP_HOME_DIR." >&2
     echo "Create it or provide an encrypted bundle at $ENCRYPTED_HOME_BUNDLE." >&2
     exit 1
+  fi
+elif bootstrap_home_is_stale; then
+  if [ -n "${SETUP_SECRETS_PASSWORD-}" ]; then
+    echo "NOTE: the vault changed since $BOOTSTRAP_HOME_DIR was decrypted; refreshing it."
+    "$REPO_DIR/scripts/decrypt_home_bundle.sh" "$ENCRYPTED_HOME_BUNDLE" "$BOOTSTRAP_HOME_DIR" "SETUP_SECRETS_PASSWORD"
+    vault_fingerprint > "$VAULT_STAMP"
+  else
+    echo "WARNING: the vault is newer than $BOOTSTRAP_HOME_DIR, which will restore stale secrets." >&2
+    echo "         Set SETUP_SECRETS_PASSWORD to refresh it, or delete that directory and rerun." >&2
   fi
 fi
 
