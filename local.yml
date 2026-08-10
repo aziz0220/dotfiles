@@ -80,3 +80,18 @@
         - tailnet
         - base
         - install
+
+    # Deliberately the final task. app_stack records missing tools instead of
+    # aborting, so that a failed CLI installer cannot prevent the machine from
+    # joining the tailnet and becoming reachable. The run still fails.
+    - name: Fail when required custom tools are missing
+      ansible.builtin.fail:
+        msg: "Required custom tools are unavailable after installation: {{ _missing_required_custom_tools | join(', ') }}"
+      when:
+        - _missing_required_custom_tools is defined
+        - _missing_required_custom_tools | length > 0
+      tags:
+        - node
+        - software
+        - base
+        - install
