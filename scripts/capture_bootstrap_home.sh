@@ -136,6 +136,29 @@ done
 # be worse than being told.
 printf '%s\n' "${SOURCE_HOME%/}" > "$OUTPUT_HOME_DIR/.dotfiles-captured-home"
 
+# Docker Desktop on WSL writes {"credsStore": "desktop.exe"}, a pointer to a
+# Windows credential helper. Restoring that onto a Linux machine makes every
+# `docker pull` fail with `docker-credential-desktop.exe: executable file not
+# found`, and it carries no credentials of its own -- those live in Windows.
+if [ -f "$OUTPUT_HOME_DIR/.docker/config.json" ]; then
+  python3 - "$OUTPUT_HOME_DIR/.docker/config.json" <<'PY' || true
+import json
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, encoding="utf-8") as stream:
+        config = json.load(stream)
+except (OSError, ValueError):
+    sys.exit(0)
+
+if str(config.get("credsStore", "")).endswith(".exe"):
+    config.pop("credsStore")
+    with open(path, "w", encoding="utf-8") as stream:
+        json.dump(config, stream, indent=2)
+PY
+fi
+
 # Remove host-specific or runtime artifacts that should not be replicated.
 rm -f "$OUTPUT_HOME_DIR/.ssh/known_hosts" "$OUTPUT_HOME_DIR/.ssh/known_hosts.old" || true
 find "$OUTPUT_HOME_DIR/.gnupg" -maxdepth 1 -type s -delete 2>/dev/null || true
