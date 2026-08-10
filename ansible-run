@@ -14,20 +14,29 @@ fi
 
 ANSIBLE_EXTRA_ARGS=("$@")
 
-# Checked before anything else, because everything after this point -- vault
-# decryption included -- would be done on root's behalf. Identity is detected
-# from the invoking shell, so under sudo that is user_name=root and
-# user_home=/root, and a full run restores the vault (SSH keys, cloud
-# credentials, agent logins) into root's home instead of yours. Reaching for
-# sudo is the natural reaction to the "sudo needs authentication" error further
-# down, so name the flag that actually fixes that. Genuine root with no sudo
-# (containers, CI) is unaffected.
+# Resolved before anything else, vault decryption included, because every later
+# step acts on whoever this decides the target is.
+#
+# Identity is detected from the invoking shell, so `sudo ./ansible-run` used to
+# detect root: user_name=root, user_home=/root, and a full run restored the
+# vault -- SSH keys, GPG keys, cloud credentials, agent logins -- into root's
+# home while reporting success. It also skipped the sudo-authentication check
+# below, which is conditioned on not already being root.
+#
+# Refusing would be safe but unhelpful: people reach for sudo precisely because
+# that check rejected them for lacking passwordless sudo. Adopting SUDO_USER
+# instead makes `sudo ./ansible-run` do the obviously intended thing -- and it
+# is the one invocation that already has the privileges the play needs, so it
+# does not need -K at all. Genuine root with no SUDO_USER (containers, CI) is
+# untouched.
+TARGET_USER="$(whoami)"
 if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
-  echo "ERROR: do not run ./ansible-run under sudo." >&2
-  echo "       It would provision root (/root) instead of $SUDO_USER." >&2
-  echo "       Run it as yourself, adding -K if sudo asks for a password:" >&2
-  echo "         ./ansible-run${TAG_SET:+ }${TAG_SET/#all/} -K" >&2
-  exit 1
+  if ! getent passwd "$SUDO_USER" >/dev/null 2>&1; then
+    echo "ERROR: SUDO_USER=$SUDO_USER has no passwd entry; cannot resolve the target user." >&2
+    exit 1
+  fi
+  TARGET_USER="$SUDO_USER"
+  echo "NOTE: running under sudo; provisioning $TARGET_USER rather than root."
 fi
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then
@@ -129,10 +138,17 @@ elif bootstrap_home_is_stale; then
   fi
 fi
 
-CURRENT_USER="$(whoami)"
-CURRENT_HOME="$HOME"
-CURRENT_UID="$(id -u)"
-CURRENT_GID="$(id -g)"
+# Read from passwd rather than $HOME/$UID, which describe the invoking process
+# and are root's when this runs under sudo.
+CURRENT_USER="$TARGET_USER"
+CURRENT_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+CURRENT_UID="$(id -u "$TARGET_USER")"
+CURRENT_GID="$(id -g "$TARGET_USER")"
+
+if [ -z "$CURRENT_HOME" ]; then
+  echo "ERROR: could not resolve a home directory for $TARGET_USER." >&2
+  exit 1
+fi
 # Identity is detected; the login shell deliberately is not. $SHELL is whatever
 # shell happens to be invoking this -- on a fresh Ubuntu that is bash, and
 # passing it as -e overrode the zsh in vars/user-profile.yml, so provisioning

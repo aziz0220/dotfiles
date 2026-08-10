@@ -118,6 +118,19 @@
   when: bootstrap_home_tree.stat.exists
   become: true
 
+# rsync creates the backup directory itself, as root, and --chown only applies
+# to transferred files. The backups were therefore root-owned -- unreadable by
+# the person whose overwritten files they are, which defeats the point of
+# keeping them.
+- name: Ensure restore backups are owned by the user
+  ansible.builtin.file:
+    path: "{{ user_home }}/.dotfiles-backup"
+    state: directory
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
+    recurse: true
+  when: _home_restore_rsync is changed
+
 - name: Ensure user-local bin directory exists
   ansible.builtin.file:
     path: "{{ user_home }}/.local/bin"

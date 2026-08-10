@@ -69,11 +69,16 @@ fi
 # must keep working.
 SUDO_GUARD="$TEST_DIR/sudo-guard.log"
 if command -v unshare >/dev/null 2>&1 && unshare -r true 2>/dev/null; then
-  if SUDO_USER=someone DOTFILES_SKIP_FETCH=1 unshare -r bash "$REPO_DIR/ansible-run" \
-      >/dev/null 2>"$SUDO_GUARD"; then
-    fail "running under sudo should be refused"
+  : > "$ANSIBLE_LOG"
+  SUDO_USER="$(id -un)" DOTFILES_SKIP_FETCH=1 unshare -r bash "$REPO_DIR/ansible-run" \
+    >"$SUDO_GUARD" 2>&1 || true
+  grep -q -- "-e user_name=$(id -un)" "$ANSIBLE_LOG" ||
+    fail "under sudo the invoking user must be provisioned, not root"
+  if grep -q -- '-e user_name=root' "$ANSIBLE_LOG"; then
+    fail "under sudo root must not be the provisioning target"
   fi
-  grep -qi 'under sudo' "$SUDO_GUARD" || fail "sudo refusal did not explain itself"
+  grep -q -- "-e user_home=$HOME" "$ANSIBLE_LOG" ||
+    fail "under sudo the invoking user's home must be used, not /root"
 fi
 
 # The decrypted tree caches the vault. A vault newer than the tree means a
