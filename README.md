@@ -211,6 +211,14 @@ remote. Run it before rebuilding or discarding a machine.
 
 ### What gets restored, and what does not
 
+One exception worth knowing before you rely on it: **Claude Code's login does not
+survive the trip.** Its OAuth refresh token rotates on every use, so the copy in
+the vault is superseded the moment the capturing machine refreshes — the restored
+file is intact but the session is dead, and the restored machine reports
+`OAuth session expired and could not be refreshed`. Run `claude` and `/login`
+once per machine. Every other captured credential here uses a non-rotating token
+and does carry over.
+
 | Restored | Not restored |
 |---|---|
 | Shell config, `.gitconfig`, editor and terminal config | **Your own project repositories** |

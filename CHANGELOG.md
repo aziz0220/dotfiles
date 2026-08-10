@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Machine-to-machine access: provisioning enables `tailscaled` and turns on Tailscale SSH, so every provisioned machine can reach every other one without key distribution, port forwarding, or a public SSH port
-- Vault captures agent and editor CLI logins so a restored machine is signed in rather than merely configured: Claude Code, Copilot, Junie, opencode, Vercel, Kimi, and openconnect-sso
+- Vault captures agent and editor CLI logins so a restored machine is signed in rather than merely configured: Copilot, Junie, opencode, Vercel, Kimi, and openconnect-sso. Claude Code is captured too but its OAuth refresh token rotates, so its session does not survive the trip and needs one `/login` per machine
 - Claude Code plugin and marketplace manifests are captured, so a restored machine reinstalls the same plugin set without carrying the 627MB of plugin payload
 - Home restore rewrites the capturing user's literal home path in JSON and TOML configs, which have no `$HOME` expansion, keeping plugin manifests and editor settings valid under a different username
 - Vault captures CLI auth tokens that previously existed only on one machine: `gh`, `stripe`, `netlify`, `neonctl`, `kaggle`, `huggingface`, `railway`, `docker`, `fly`, `gemini` and `.claude.json`
