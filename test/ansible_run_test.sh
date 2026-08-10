@@ -64,6 +64,18 @@ if grep -q -- '-e user_shell=' "$ANSIBLE_LOG"; then
   fail "login shell must come from vars, not the invoking shell"
 fi
 
+# Running under sudo detects root as the target user, so a full run would
+# restore the vault into /root. Genuine root with no SUDO_USER (containers, CI)
+# must keep working.
+SUDO_GUARD="$TEST_DIR/sudo-guard.log"
+if command -v unshare >/dev/null 2>&1 && unshare -r true 2>/dev/null; then
+  if SUDO_USER=someone DOTFILES_SKIP_FETCH=1 unshare -r bash "$REPO_DIR/ansible-run" \
+      >/dev/null 2>"$SUDO_GUARD"; then
+    fail "running under sudo should be refused"
+  fi
+  grep -qi 'under sudo' "$SUDO_GUARD" || fail "sudo refusal did not explain itself"
+fi
+
 # The decrypted tree caches the vault. A vault newer than the tree means a
 # pull brought new secrets that were never decrypted, and restoring the stale
 # tree silently applies the old ones.

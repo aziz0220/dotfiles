@@ -14,6 +14,22 @@ fi
 
 ANSIBLE_EXTRA_ARGS=("$@")
 
+# Checked before anything else, because everything after this point -- vault
+# decryption included -- would be done on root's behalf. Identity is detected
+# from the invoking shell, so under sudo that is user_name=root and
+# user_home=/root, and a full run restores the vault (SSH keys, cloud
+# credentials, agent logins) into root's home instead of yours. Reaching for
+# sudo is the natural reaction to the "sudo needs authentication" error further
+# down, so name the flag that actually fixes that. Genuine root with no sudo
+# (containers, CI) is unaffected.
+if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+  echo "ERROR: do not run ./ansible-run under sudo." >&2
+  echo "       It would provision root (/root) instead of $SUDO_USER." >&2
+  echo "       Run it as yourself, adding -K if sudo asks for a password:" >&2
+  echo "         ./ansible-run${TAG_SET:+ }${TAG_SET/#all/} -K" >&2
+  exit 1
+fi
+
 if ! command -v ansible-playbook >/dev/null 2>&1; then
   echo "ERROR: ansible-playbook is not installed. Run ./install first." >&2
   exit 1
