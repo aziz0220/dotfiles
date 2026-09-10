@@ -1,5 +1,5 @@
+# Node runtimes managed through nvm (see app_stack). SDKMAN is intentionally
+# not installed any more -- it was capturing empty java/maven/gradle version
+# lists that no longer reflected what this machine used.
 node_versions:
   - v20.20.2
-sdkman_java_versions: []
-sdkman_gradle_versions: []
-sdkman_maven_versions: []

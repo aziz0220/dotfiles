@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Hand-curated pip user-site tools (`vars/pip-user.yml`): uv, jupyter, playwright, git-filter-repo, kaggle
+- Custom tools added: Kimi Code CLI and Kiro CLI installers
+- `capture_bootstrap_home.sh` prunes regenerable caches (`.aws/*/cache`, `.kube/cache`) from the bundle
+
+### Changed
+- `vars/installed-packages.yml` is now a hand-curated ~40-package apt essentials list instead of a 1,650-package `dpkg-query` snapshot; `capture_software_inventory.sh` no longer captures apt, so a fresh machine gets a clean Ubuntu base plus the tools that matter instead of a mirror of one machine's accumulated state
+- SDKMAN and jenv are no longer installed (their version lists were empty and unused)
+- Vault bundle scope trimmed: `.fly`, `.railway`, `.config/neonctl`, `.config/netlify`, `.config/openconnect-sso`, `.gemini`, and the never-valid `.claude/.credentials.json` are no longer captured
 - Machine-to-machine access: provisioning enables `tailscaled` and turns on Tailscale SSH, so every provisioned machine can reach every other one without key distribution, port forwarding, or a public SSH port
 - Vault captures agent and editor CLI logins so a restored machine is signed in rather than merely configured: Copilot, Junie, opencode, Vercel, Kimi, and openconnect-sso. Claude Code is captured too but its OAuth refresh token rotates, so its session does not survive the trip and needs one `/login` per machine
 - Claude Code plugin and marketplace manifests are captured, so a restored machine reinstalls the same plugin set without carrying the 627MB of plugin payload

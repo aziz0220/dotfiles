@@ -23,6 +23,7 @@
     - vars/gem.yml
     - vars/flatpak.yml
     - vars/custom-tools.yml
+    - vars/pip-user.yml
     - vars/repos.yml
 
   pre_tasks:

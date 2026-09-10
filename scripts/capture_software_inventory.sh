@@ -17,15 +17,10 @@ EOF
   exit 1
 fi
 
-capture_apt() {
-  {
-    echo "packages:"
-    dpkg-query -W -f='${binary:Package}\n' \
-      | sed -E 's/:(amd64|arm64|i386)$//' \
-      | sort -u \
-      | awk '{print "  - " $0}'
-  } > "$REPO_DIR/vars/installed-packages.yml"
-}
+# apt is deliberately NOT captured: a raw dpkg-query dump mirrors the entire
+# image (base libraries, fonts, upgrade leftovers) and much of it does not
+# exist on other Ubuntu releases. vars/installed-packages.yml is a hand-curated
+# essentials list instead -- see the comment at the top of that file.
 
 capture_snap() {
   {
@@ -111,7 +106,6 @@ capture_flatpak() {
   } > "$REPO_DIR/vars/flatpak.yml"
 }
 
-capture_apt
 capture_snap
 capture_npm_global
 capture_pipx
@@ -120,10 +114,10 @@ capture_gem
 capture_flatpak
 
 echo "Updated:"
-echo "  - $REPO_DIR/vars/installed-packages.yml"
 echo "  - $REPO_DIR/vars/snap-list.yml"
 echo "  - $REPO_DIR/vars/npm-global.yml"
 echo "  - $REPO_DIR/vars/pipx.yml"
 echo "  - $REPO_DIR/vars/cargo.yml"
 echo "  - $REPO_DIR/vars/gem.yml"
 echo "  - $REPO_DIR/vars/flatpak.yml"
+echo "Note: vars/installed-packages.yml and vars/pip-user.yml are hand-curated and no longer captured."

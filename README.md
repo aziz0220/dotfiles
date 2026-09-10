@@ -35,7 +35,7 @@ Your own project repositories are **not** part of that source of truth — see [
 - **One-command bootstrap** — `curl -fsSL https://raw.githubusercontent.com/aziz0220/dotfiles/main/install | bash`
 - **One-command WSL lifecycle** — create, bootstrap, validate, launch, export, or remove a distro from PowerShell
 - **Encrypted secrets** — SSH keys, GPG keys, AWS credentials, kube config stored in AES-256-CBC + PBKDF2 vault
-- **Declarative machine state** — packages, snaps, npm/pipx/cargo/gem packages, runtimes all captured as version-controlled YAML
+- **Declarative machine state** — a curated apt essentials list plus snaps, npm/pip/cargo/gem packages and runtimes as version-controlled YAML
 - **Idempotent** — safe to run multiple times; only installs what's missing
 - **Tagged execution** — run only what you need: `./ansible-run dotfiles`, `./ansible-run node`, etc.
 - **Username-independent** — restores under any account name; UID/GID, home path, and shell are detected at runtime and captured `$HOME` paths are rewritten
@@ -148,7 +148,9 @@ export SETUP_SECRETS_PASSWORD='your-vault-password'
 # Capture dotfiles and configs
 ALLOW_REPO_OVERWRITE=1 ./scripts/capture_bootstrap_home.sh
 
-# Capture installed packages, snap, npm/pipx/cargo/gem/flatpak
+# Capture snap/npm/pipx/cargo/gem/flatpak state
+# (vars/installed-packages.yml and vars/pip-user.yml are hand-curated and are
+# NOT captured -- see "Apt packages" under Configuration Reference.)
 ALLOW_REPO_OVERWRITE=1 ./scripts/capture_software_inventory.sh
 ```
 
@@ -192,7 +194,7 @@ remote. Run it before rebuilding or discarding a machine.
 │  │system_setup│    │  app_stack   │    │home_restore │   │
 │  │ - apt srcs │    │ - packages   │    │ - user/groups│  │
 │  │ - locale   │    │ - snap       │    │ - dotfiles  │   │
-│  │ - timezone │    │ - npm/pipx  │    │ - SSH/GPG   │   │
+│  │ - timezone │    │ - npm/pip  │    │ - SSH/GPG   │   │
 │  │ - services │    │ - runtimes  │    │ - repos     │   │
 │  └────────────┘    │ - cargo/gem │    └────────────┘   │
 │                    │ - flatpak   │                       │
@@ -202,8 +204,8 @@ remote. Run it before rebuilding or discarding a machine.
 │  │  Data Sources                                     │   │
 │  │  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │   │
 │  │  │ vars/*.yml│  │ vault/   │  │ vars/repos.yml │  │   │
-│  │  │(captured │  │(encrypted│  │(tooling clones │  │   │
-│  │  │ state)   │  │ secrets) │  │ only)           │  │   │
+│  │  │(curated + │  │(encrypted│  │(tooling clones │  │   │
+│  │  │ captured) │  │ secrets) │  │ only)           │  │   │
 │  │  └──────────┘  └──────────┘  └────────────────┘  │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
@@ -224,7 +226,7 @@ and does carry over.
 | Shell config, `.gitconfig`, editor and terminal config | **Your own project repositories** |
 | SSH keys, GPG keys, AWS/kube config, CLI auth tokens | Anything uncommitted or unpushed, anywhere |
 | apt / snap / npm / pipx / cargo / gem / flatpak packages | Repos with no remote |
-| Node and SDKMAN runtimes, custom CLI tools | Caches, build output, `node_modules` |
+| Node runtimes (nvm), custom CLI tools | Caches, build output, `node_modules` |
 | Tooling clones only: `.oh-my-zsh`, `.nvm`, nvim plugins | |
 
 `vars/repos.yml` holds **tooling clones only** — things like oh-my-zsh and nvim plugins that
@@ -336,16 +338,17 @@ DOTFILES_SKIP_FETCH=1 ./ansible-run   # offline, skip the check
 │   ├── user-profile.yml    # User metadata
 │   ├── groups.yml          # System groups
 │   ├── system-locale.yml   # Locale and timezone
-│   ├── installed-packages.yml  # apt packages
+│   ├── installed-packages.yml  # Curated apt essentials (~40 packages)
 │   ├── snap-list.yml       # Snap packages
 │   ├── npm-global.yml      # Global npm packages
 │   ├── pipx.yml            # pipx-installed tools
+│   ├── pip-user.yml        # Hand-curated pip user-site tools (uv, jupyter, playwright, git-filter-repo, kaggle)
 │   ├── cargo.yml           # Cargo-installed tools
 │   ├── gem.yml             # Ruby gems
 │   ├── flatpak.yml         # Flatpak applications
 │   ├── repos.yml           # Tooling clones only (oh-my-zsh, nvim plugins) — not your projects
-│   ├── runtimes.yml        # Node/SDKMAN runtime versions
-│   ├── custom-tools.yml    # One-off tool installers
+│   ├── runtimes.yml        # Node versions (nvm) — SDKMAN is no longer used
+│   ├── custom-tools.yml    # One-off tool installers (claude, opencode, junie, copilot, kimi, kiro, …)
 │   └── systemd-enabled-services.yml
 │
 ├── vault/

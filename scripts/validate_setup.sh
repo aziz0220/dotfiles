@@ -29,6 +29,7 @@ required_files=(
   "$PLAYBOOK_DIR/vars/gem.yml"
   "$PLAYBOOK_DIR/vars/flatpak.yml"
   "$PLAYBOOK_DIR/vars/custom-tools.yml"
+  "$PLAYBOOK_DIR/vars/pip-user.yml"
 )
 
 for path in "${required_files[@]}"; do

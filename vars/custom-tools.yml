@@ -63,3 +63,11 @@ custom_tools:
     check_cmd: "command -v stripe"
     install_cmd: "bash {{ playbook_dir }}/scripts/install_stripe.sh"
     become: true
+  - name: kimi
+    check_cmd: "command -v kimi"
+    install_cmd: "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash"
+    become: false
+  - name: kiro
+    check_cmd: "command -v kiro-cli"
+    install_cmd: "curl -fsSL https://cli.kiro.dev/install | bash"
+    become: false
