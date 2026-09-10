@@ -282,6 +282,7 @@
         [
           _default_node_bin.stdout | default(''),
           user_home ~ '/.cargo/bin',
+          user_home ~ '/.kimi-code/bin',
           user_home ~ '/.local/bin',
           user_home ~ '/.opencode/bin',
           user_home ~ '/.npm-global/bin',
@@ -669,122 +670,44 @@
     - _is_wsl | default(false)
     - _ttyd_binary.stat.exists
 
-- name: Check if jenv checkout already exists
-  ansible.builtin.stat:
-    path: "{{ user_home }}/.jenv/.git"
-  register: _jenv_git_dir
-
-- name: Restore jenv checkout if not present
-  ansible.builtin.git:
-    repo: https://github.com/jenv/jenv.git
-    dest: "{{ user_home }}/.jenv"
-    depth: 1
-    update: false
-    recursive: false
-  become_user: "{{ user_name }}"
-  when: not _jenv_git_dir.stat.exists
-
-- name: Install SDKMAN
+- name: Install pip user tools
   ansible.builtin.shell: |
-    curl -s "https://get.sdkman.io" | bash
+    set -e
+    export HOME="{{ user_home }}"
+    # --break-system-packages only exists on pip >= 23; Ubuntu 22.04 ships
+    # pip 22.0.2 and rejects the flag. Probe for support once per run.
+    pip_bin="$(command -v python3)"
+    if "$pip_bin" -m pip install --help 2>/dev/null | grep -q break-system-packages; then
+      "$pip_bin" -m pip install --user --break-system-packages "{{ item }}"
+    else
+      "$pip_bin" -m pip install --user "{{ item }}"
+    fi
   args:
     executable: /bin/bash
-    creates: "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
+  loop: "{{ pip_user_packages | default([], true) }}"
+  register: _pip_user_installs
+  changed_when: true
+  failed_when: false
   become_user: "{{ user_name }}"
+  when: (pip_user_packages | default([], true)) | length > 0
 
-- name: Check SDKMAN bootstrap script
-  ansible.builtin.stat:
-    path: "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
-  register: _sdkman_script
+- name: Collect failed pip user installs
+  ansible.builtin.set_fact:
+    _failed_pip_user_installs: >-
+      {{
+        _pip_user_installs.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
+  when:
+    - _pip_user_installs is defined
+    - _pip_user_installs.results is defined
 
-- name: Fail when SDKMAN bootstrap script is missing
+- name: Fail when any required pip user tool failed to install
   ansible.builtin.fail:
-    msg: "Missing SDKMAN bootstrap script at {{ user_home }}/.sdkman/bin/sdkman-init.sh"
-  when: not _sdkman_script.stat.exists
-
-- name: Install SDKMAN Java versions
-  ansible.builtin.shell: |
-    set -e
-    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
-    sdk install java "{{ item }}"
-  args:
-    executable: /bin/bash
-    creates: "{{ user_home }}/.sdkman/candidates/java/{{ item }}"
-  loop: "{{ sdkman_java_versions }}"
-  become_user: "{{ user_name }}"
-  environment:
-    HOME: "{{ user_home }}"
-    SDKMAN_DIR: "{{ user_home }}/.sdkman"
-    SDKMAN_AUTO_ANSWER: "true"
-
-- name: Set default SDKMAN Java version
-  ansible.builtin.shell: |
-    set -e
-    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
-    sdk default java "{{ sdkman_default_java }}"
-  args:
-    executable: /bin/bash
-  become_user: "{{ user_name }}"
-  environment:
-    HOME: "{{ user_home }}"
-    SDKMAN_DIR: "{{ user_home }}/.sdkman"
-    SDKMAN_AUTO_ANSWER: "true"
-  when: sdkman_java_versions | length > 0
-
-- name: Install SDKMAN Maven versions
-  ansible.builtin.shell: |
-    set -e
-    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
-    sdk install maven "{{ item }}"
-  args:
-    executable: /bin/bash
-    creates: "{{ user_home }}/.sdkman/candidates/maven/{{ item }}"
-  loop: "{{ sdkman_maven_versions }}"
-  become_user: "{{ user_name }}"
-  environment:
-    HOME: "{{ user_home }}"
-    SDKMAN_DIR: "{{ user_home }}/.sdkman"
-    SDKMAN_AUTO_ANSWER: "true"
-
-- name: Set default SDKMAN Maven version
-  ansible.builtin.shell: |
-    set -e
-    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
-    sdk default maven "{{ sdkman_default_maven }}"
-  args:
-    executable: /bin/bash
-  become_user: "{{ user_name }}"
-  environment:
-    HOME: "{{ user_home }}"
-    SDKMAN_DIR: "{{ user_home }}/.sdkman"
-    SDKMAN_AUTO_ANSWER: "true"
-  when: sdkman_maven_versions | length > 0
-
-- name: Install SDKMAN Gradle versions
-  ansible.builtin.shell: |
-    set -e
-    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
-    sdk install gradle "{{ item }}"
-  args:
-    executable: /bin/bash
-    creates: "{{ user_home }}/.sdkman/candidates/gradle/{{ item }}"
-  loop: "{{ sdkman_gradle_versions }}"
-  become_user: "{{ user_name }}"
-  environment:
-    HOME: "{{ user_home }}"
-    SDKMAN_DIR: "{{ user_home }}/.sdkman"
-    SDKMAN_AUTO_ANSWER: "true"
-
-- name: Set default SDKMAN Gradle version
-  ansible.builtin.shell: |
-    set -e
-    source "{{ user_home }}/.sdkman/bin/sdkman-init.sh"
-    sdk default gradle "{{ sdkman_default_gradle }}"
-  args:
-    executable: /bin/bash
-  become_user: "{{ user_name }}"
-  environment:
-    HOME: "{{ user_home }}"
-    SDKMAN_DIR: "{{ user_home }}/.sdkman"
-    SDKMAN_AUTO_ANSWER: "true"
-  when: sdkman_gradle_versions | length > 0
+    msg: "Failed to install required pip user tools: {{ _failed_pip_user_installs | join(', ') }}"
+  when:
+    - _failed_pip_user_installs is defined
+    - _failed_pip_user_installs | length > 0

@@ -11,12 +11,6 @@ repositories:
     clone_if_missing: true
     remotes:
       origin: "https://github.com/nvm-sh/nvm.git"
-  - name: ".jenv"
-    path: "{{ user_home }}/.jenv"
-    clone_from: "https://github.com/jenv/jenv.git"
-    clone_if_missing: true
-    remotes:
-      origin: "https://github.com/jenv/jenv.git"
   - name: "lazy.nvim"
     path: "{{ user_home }}/.local/share/nvim/lazy/lazy.nvim"
     clone_from: "https://github.com/folke/lazy.nvim.git"

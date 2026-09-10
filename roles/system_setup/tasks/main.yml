@@ -60,22 +60,6 @@
     - not _snapshot_sources_matches_release
     - not _ubuntu_deb822_sources.stat.exists
 
-- name: Restore HashiCorp repo list with target distro codename
-  ansible.builtin.template:
-    src: etc_apt_sources_hashicorp.list.j2
-    dest: /etc/apt/sources.list.d/hashicorp.list
-    owner: root
-    group: root
-    mode: '0644'
-
-- name: Restore HashiCorp apt keyring
-  ansible.builtin.copy:
-    src: usr_share_keyrings/hashicorp-archive-keyring.gpg
-    dest: /usr/share/keyrings/hashicorp-archive-keyring.gpg
-    owner: root
-    group: root
-    mode: '0644'
-
 - name: Detect WSL
   ansible.builtin.set_fact:
     _is_wsl: "{{ 'microsoft' in (ansible_facts.kernel | lower) }}"

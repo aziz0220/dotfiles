@@ -151,6 +151,7 @@
         "$HOME/go/bin" \
         "$HOME/.npm-global/bin" \
         "$HOME/.cargo/bin" \
+        "$HOME/.kimi-code/bin" \
         "$HOME/.opencode/bin" \
         "$HOME/.local/bin"
       do

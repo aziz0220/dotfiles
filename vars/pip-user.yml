@@ -1,0 +1,10 @@
+# Python user-site tools, installed with `pip3 install --user`.
+# Hand-curated, like installed-packages.yml -- these are the pip-installed
+# CLIs a fresh machine should have. They are NOT captured from the host
+# automatically, so junk that accumulates in ~/.local/bin never gets recorded.
+pip_user_packages:
+  - uv
+  - jupyter
+  - playwright
+  - git-filter-repo
+  - kaggle

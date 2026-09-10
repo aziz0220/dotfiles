@@ -29,6 +29,7 @@ required_files=(
   "$PLAYBOOK_DIR/vars/gem.yml"
   "$PLAYBOOK_DIR/vars/flatpak.yml"
   "$PLAYBOOK_DIR/vars/custom-tools.yml"
+  "$PLAYBOOK_DIR/vars/pip-user.yml"
 )
 
 for path in "${required_files[@]}"; do
@@ -128,7 +129,7 @@ echo
 echo "== Custom Tool Parity =="
 
 export HOME="$USER_HOME"
-export PATH="$USER_HOME/.cargo/bin:$USER_HOME/.local/bin:$USER_HOME/.opencode/bin:$USER_HOME/.npm-global/bin:$PATH"
+export PATH="$USER_HOME/.cargo/bin:$USER_HOME/.kimi-code/bin:$USER_HOME/.local/bin:$USER_HOME/.opencode/bin:$USER_HOME/.npm-global/bin:$PATH"
 if [ -s "$USER_HOME/.nvm/nvm.sh" ]; then
   export NVM_DIR="$USER_HOME/.nvm"
   # shellcheck source=/dev/null

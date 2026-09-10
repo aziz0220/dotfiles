@@ -58,8 +58,10 @@ declare -a INCLUDE_PATHS=(
   ".codex/skills"
   ".codex/memories"
   # .local/bin deliberately omitted: every entry is an installed binary that
-  # custom_tools, cargo, or npm reinstalls. Capturing it added 1.3GB.
-  "bin"
+  # custom_tools, cargo, npm, or pip reinstalls. Capturing it added 1.3GB.
+  # ~/bin is likewise omitted: on this machine it held only a symlink into a
+  # project venv (imageio_ffmpeg), which --copy-unsafe-links dereferenced into
+  # a 79MB binary that belongs to nobody. Real ffmpeg comes from apt instead.
 )
 
 if [ "$INCLUDE_PRIVATE" = "true" ]; then
@@ -73,19 +75,17 @@ if [ "$INCLUDE_PRIVATE" = "true" ]; then
     # .gemini 20M) around a few hundred bytes of actual credential.
     ".config/gh"
     ".config/stripe"
-    ".config/netlify/config.json"
-    ".config/neonctl"
     ".kaggle"
     ".huggingface"
-    ".railway/config.json"
     ".docker/config.json"
-    ".fly/config.yml"
-    ".gemini/GEMINI.md"
     ".claude.json"
     # Agent/editor CLI logins. Without these the tools restore fully configured
     # but signed out, which is the one thing a restored machine should not
     # make you redo by hand.
-    ".claude/.credentials.json"
+    # Note: .claude/.credentials.json is deliberately excluded -- Claude Code's
+    # OAuth refresh token rotates on use, so the captured copy is dead the
+    # moment the capturing machine refreshes. Every restored machine must run
+    # `claude` + `/login` once (see README).
     ".copilot/config.json"
     ".junie/secure_credentials.json"
     ".junie/settings.json"
@@ -95,7 +95,6 @@ if [ "$INCLUDE_PRIVATE" = "true" ]; then
     ".local/share/opencode/account.json"
     ".local/share/com.vercel.cli/auth.json"
     ".local/share/com.vercel.cli/config.json"
-    ".config/openconnect-sso/config.toml"
     # Tailnet auth key, so a new machine joins without anyone approving a
     # browser prompt. Tailscale expires these within 90 days; when it lapses,
     # tasks/tailnet.yml prints the manual command instead of failing.
@@ -136,10 +135,37 @@ done
 # be worse than being told.
 printf '%s\n' "${SOURCE_HOME%/}" > "$OUTPUT_HOME_DIR/.dotfiles-captured-home"
 
+# Docker Desktop on WSL writes {"credsStore": "desktop.exe"}, a pointer to a
+# Windows credential helper. Restoring that onto a Linux machine makes every
+# `docker pull` fail with `docker-credential-desktop.exe: executable file not
+# found`, and it carries no credentials of its own -- those live in Windows.
+if [ -f "$OUTPUT_HOME_DIR/.docker/config.json" ]; then
+  python3 - "$OUTPUT_HOME_DIR/.docker/config.json" <<'PY' || true
+import json
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, encoding="utf-8") as stream:
+        config = json.load(stream)
+except (OSError, ValueError):
+    sys.exit(0)
+
+if str(config.get("credsStore", "")).endswith(".exe"):
+    config.pop("credsStore")
+    with open(path, "w", encoding="utf-8") as stream:
+        json.dump(config, stream, indent=2)
+PY
+fi
+
 # Remove host-specific or runtime artifacts that should not be replicated.
 rm -f "$OUTPUT_HOME_DIR/.ssh/known_hosts" "$OUTPUT_HOME_DIR/.ssh/known_hosts.old" || true
 find "$OUTPUT_HOME_DIR/.gnupg" -maxdepth 1 -type s -delete 2>/dev/null || true
 find "$OUTPUT_HOME_DIR/.gnupg" -name '*.lock' -delete 2>/dev/null || true
+
+# Regenerable caches that add nothing to a restore and would go stale anyway.
+rm -rf "$OUTPUT_HOME_DIR/.aws/cli/cache" "$OUTPUT_HOME_DIR/.aws/sso/cache" 2>/dev/null || true
+rm -rf "$OUTPUT_HOME_DIR/.kube/cache" 2>/dev/null || true
 
 if [ -d "$OUTPUT_HOME_DIR/.ssh" ]; then
   chmod 700 "$OUTPUT_HOME_DIR/.ssh" || true
