@@ -74,6 +74,12 @@
 - name: Join the tailnet with Tailscale SSH enabled
   ansible.builtin.command:
     argv:
+      # Hard timeout: with an expired key `tailscale up` can block forever
+      # waiting on the control plane, hanging the whole provision. timeout(1)
+      # returns 124 on expiry and failed_when is false, so the play reports and
+      # moves on instead.
+      - timeout
+      - "90"
       - tailscale
       - up
       - --ssh

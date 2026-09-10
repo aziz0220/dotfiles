@@ -1,10 +1,8 @@
 repositories:
-  - name: "nvim"
-    path: "{{ user_home }}/.config/nvim"
-    clone_from: "https://github.com/nvim-lua/kickstart.nvim.git"
-    clone_if_missing: true
-    remotes:
-      origin: "https://github.com/nvim-lua/kickstart.nvim.git"
+  # nvim is deliberately NOT cloned here. The vault carries ~/.config/nvim
+  # (the user's kickstart config), and the restore places it. Cloning vanilla
+  # kickstart over the same path deleted the restored config -- validate_setup
+  # caught files like lazy-lock.json missing as a result.
   - name: ".nvm"
     path: "{{ user_home }}/.nvm"
     clone_from: "https://github.com/nvm-sh/nvm.git"
