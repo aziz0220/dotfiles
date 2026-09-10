@@ -674,7 +674,14 @@
   ansible.builtin.shell: |
     set -e
     export HOME="{{ user_home }}"
-    python3 -m pip install --user --break-system-packages "{{ item }}"
+    # --break-system-packages only exists on pip >= 23; Ubuntu 22.04 ships
+    # pip 22.0.2 and rejects the flag. Probe for support once per run.
+    pip_bin="$(command -v python3)"
+    if "$pip_bin" -m pip install --help 2>/dev/null | grep -q break-system-packages; then
+      "$pip_bin" -m pip install --user --break-system-packages "{{ item }}"
+    else
+      "$pip_bin" -m pip install --user "{{ item }}"
+    fi
   args:
     executable: /bin/bash
   loop: "{{ pip_user_packages | default([], true) }}"
