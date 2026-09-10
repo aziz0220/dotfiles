@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `vars/installed-packages.yml` is now a hand-curated ~40-package apt essentials list instead of a 1,650-package `dpkg-query` snapshot; `capture_software_inventory.sh` no longer captures apt, so a fresh machine gets a clean Ubuntu base plus the tools that matter instead of a mirror of one machine's accumulated state
+- HashiCorp apt repository and keyring removed from system_setup: no HashiCorp packages (terraform/vault/packer/consul) are installed or used, and the committed keyring went stale, failing `apt update` on every provision
 - SDKMAN and jenv are no longer installed (their version lists were empty and unused)
 - Vault bundle scope trimmed: `.fly`, `.railway`, `.config/neonctl`, `.config/netlify`, `.config/openconnect-sso`, `.gemini`, and the never-valid `.claude/.credentials.json` are no longer captured
 - Machine-to-machine access: provisioning enables `tailscaled` and turns on Tailscale SSH, so every provisioned machine can reach every other one without key distribution, port forwarding, or a public SSH port
