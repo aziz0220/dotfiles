@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hand-curated pip user-site tools (`vars/pip-user.yml`): uv, jupyter, playwright, git-filter-repo, kaggle
 - Custom tools added: Kimi Code CLI and Kiro CLI installers
 - `capture_bootstrap_home.sh` prunes regenerable caches (`.aws/*/cache`, `.kube/cache`) from the bundle
+- On WSL, a systemd drop-in for `tailscaled` removes a stale `tailscale0` interface before start, preventing the "device or resource busy" restart loop seen after tailscaled crashes or the VM restarts
 
 ### Changed
 - `vars/installed-packages.yml` is now a hand-curated ~40-package apt essentials list instead of a 1,650-package `dpkg-query` snapshot; `capture_software_inventory.sh` no longer captures apt, so a fresh machine gets a clean Ubuntu base plus the tools that matter instead of a mirror of one machine's accumulated state

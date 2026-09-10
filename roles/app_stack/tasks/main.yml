@@ -639,11 +639,35 @@
   register: _tailscale_wsl_config
   when: _is_wsl | default(false)
 
+# A stale tailscale0 interface from a previous tailscaled instance makes the
+# next start fail with "device or resource busy" on WSL, wedging the service in
+# a restart loop. Remove any leftover interface before the daemon starts.
+- name: Drop stale Tailscale tun interfaces before start on WSL
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/tailscaled.service.d/cleanup-tun.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Service]
+      ExecStartPre=-/bin/sh -c 'ip link del tailscale0 2>/dev/null || true'
+      Restart=on-failure
+      RestartSec=5
+  register: _tailscale_dropin
+  when: _is_wsl | default(false)
+
+- name: Reload systemd for the Tailscale drop-in on WSL
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when:
+    - _is_wsl | default(false)
+    - _tailscale_dropin.changed
+
 - name: Ensure Tailscale is running under WSL
   ansible.builtin.systemd:
     name: tailscaled.service
     enabled: true
-    state: "{{ 'restarted' if _tailscale_wsl_config.changed else 'started' }}"
+    state: "{{ 'restarted' if (_tailscale_wsl_config.changed or _tailscale_dropin.changed) else 'started' }}"
   when: _is_wsl | default(false)
 
 - name: Check whether ttyd is installed
