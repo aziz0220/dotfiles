@@ -282,6 +282,7 @@
         [
           _default_node_bin.stdout | default(''),
           user_home ~ '/.cargo/bin',
+          user_home ~ '/.kimi-code/bin',
           user_home ~ '/.local/bin',
           user_home ~ '/.opencode/bin',
           user_home ~ '/.npm-global/bin',
