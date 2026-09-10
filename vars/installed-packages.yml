@@ -51,7 +51,6 @@ packages:
   - openssh-client
   - ca-certificates
   - dnsutils
-  - ansible
   - yamllint
   - shellcheck
   - ffmpeg
