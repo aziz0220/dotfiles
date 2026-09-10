@@ -205,6 +205,9 @@ if [ -d "$BOOTSTRAP_HOME_DIR" ]; then
   home_missing=0
   while IFS= read -r rel_path; do
     [ -z "$rel_path" ] && continue
+    # The capture marker records where the bundle came from and is deliberately
+    # not restored into the target home, so it must not be expected there.
+    [ "$rel_path" = ".dotfiles-captured-home" ] && continue
     if [ ! -e "$USER_HOME/$rel_path" ]; then
       fail "missing home entry: $USER_HOME/$rel_path"
       home_missing=$((home_missing + 1))
