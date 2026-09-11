@@ -172,6 +172,34 @@ Checks package, repository, custom-tool, login-shell, and home parity, then flag
 exists only on this machine — uncommitted changes, unpushed commits, and repositories with no
 remote. Run it before rebuilding or discarding a machine.
 
+### Sync AI sessions across machines
+
+Claude Code and Codex keep their conversations in local JSONL transcripts, so a session started on
+one machine is invisible on another. `dotfiles sessions` carries them through a small **private**
+git repository (`aziz0220/ai-sessions`), cloned to `~/.ai-sessions` — the repo is transport and
+backup, not a workspace.
+
+```bash
+./bin/dotfiles sessions push     # publish this machine's recent sessions
+./bin/dotfiles sessions pull     # bring other machines' sessions here (backs up files it replaces)
+./bin/dotfiles sessions status   # ahead/behind, last sync, size
+```
+
+Then resume with the agent's own command (`claude --continue` / `claude --resume`, `codex resume`).
+What syncs: `~/.claude/projects/**/*.jsonl`, `~/.claude/CLAUDE.md`, `~/.codex/sessions/**/*.jsonl`,
+keeping the newest `AI_SESSIONS_KEEP` (default 5) sessions per project. Oversized sessions
+(over `AI_SESSIONS_MAX_MB`, default 50) stay local. Credentials, tokens, caches, and telemetry are
+**never** synced.
+
+Two things to know:
+
+- **Logins do not travel.** OAuth tokens rotate, so each machine runs `claude` → `/login` once.
+  After that, pulled sessions resume normally. The `pull` command reminds you.
+- **Push before you leave, pull when you arrive.** `pull` never silently discards a local file — it
+  backs up anything it replaces under `~/.ai-sessions-backups/<timestamp>/`. Keeping the same
+  username on every machine (`aziz0220`) is what lets Claude match project paths so `--continue`
+  finds the synced sessions.
+
 ## How It Works
 
 ```
@@ -362,6 +390,7 @@ DOTFILES_SKIP_FETCH=1 ./ansible-run   # offline, skip the check
 │   ├── encrypt_home_bundle.sh         # Encrypt secrets vault
 │   ├── rotate_vault_password.sh       # Change vault password
 │   ├── validate_setup.sh              # Post-provision validation
+│   ├── session_sync.sh                # Sync AI sessions via private git repo
 │   ├── docker_sandbox.sh              # Throwaway container from the real vault
 │   ├── install_stripe.sh              # Stripe CLI installer (custom_tools)
 │   └── wsl.ps1                        # Windows-side WSL up/down lifecycle
@@ -401,6 +430,10 @@ DOTFILES_SKIP_FETCH=1 ./ansible-run   # offline, skip the check
 | `ALLOW_REPO_OVERWRITE` | For capture | Must be `1`; guards the scripts that overwrite the repo from the host |
 | `OLDPASS` | Vault rotation | Current vault password (when using `rotate_vault_password.sh`) |
 | `NEWPASS` | Vault rotation | New vault password (when using `rotate_vault_password.sh`) |
+| `AI_SESSIONS_REPO` | No | Session-sync repo URL (default `https://github.com/aziz0220/ai-sessions.git`) |
+| `AI_SESSIONS_DIR` | No | Session-sync clone directory (default `~/.ai-sessions`) |
+| `AI_SESSIONS_KEEP` | No | Sessions kept per project in the repo (default `5`) |
+| `AI_SESSIONS_MAX_MB` | No | Skip sessions larger than this many MB (default `50`) |
 
 ### Tags
 

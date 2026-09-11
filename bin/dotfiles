@@ -10,6 +10,7 @@
 #   dotfiles <tag>            # Provision specific tag (dotfiles, node, core, ssh)
 #   dotfiles --check          # Run validation checks
 #   dotfiles --lint           # Run all linters
+#   dotfiles sessions ...     # Sync AI sessions (push|pull|status)
 #   dotfiles --help           # Show this help
 #   dotfiles --version        # Show version
 #   dotfiles --uninstall      # Remove cloned repo (caution)
@@ -39,6 +40,10 @@ case "${1:-}" in
   --lint)
     shift
     cd "$REPO_DIR" && make lint
+    ;;
+  sessions)
+    shift
+    exec bash "$REPO_DIR/scripts/session_sync.sh" "${@:-status}"
     ;;
   --uninstall)
     echo "This will remove $REPO_DIR and all its contents."
