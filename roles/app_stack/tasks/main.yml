@@ -667,6 +667,15 @@
 # A stale tailscale0 interface from a previous tailscaled instance makes the
 # next start fail with "device or resource busy" on WSL, wedging the service in
 # a restart loop. Remove any leftover interface before the daemon starts.
+- name: Ensure Tailscale drop-in directory exists on WSL
+  ansible.builtin.file:
+    path: /etc/systemd/system/tailscaled.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: _is_wsl | default(false)
+
 - name: Drop stale Tailscale tun interfaces before start on WSL
   ansible.builtin.copy:
     dest: /etc/systemd/system/tailscaled.service.d/cleanup-tun.conf
