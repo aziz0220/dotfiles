@@ -305,8 +305,33 @@
   args:
     executable: /bin/bash
   loop: "{{ npm_global_packages | default([], true) }}"
+  register: _npm_global_installs
+  changed_when: true
+  failed_when: false
   become_user: "{{ user_name }}"
   when: (npm_global_packages | default([], true)) | length > 0
+
+# One npm package flaking (e.g. ENOTEMPTY while npm swaps its directory, an
+# environment/fs quirk) used to abort the whole provision. Report it and move
+# on; the next run retries, since an already-installed package is a no-op.
+- name: Collect failed global npm installs
+  ansible.builtin.set_fact:
+    _failed_npm_globals: >-
+      {{
+        _npm_global_installs.results
+        | selectattr('rc', 'defined')
+        | rejectattr('rc', 'equalto', 0)
+        | map(attribute='item')
+        | list
+      }}
+  when:
+    - _npm_global_installs is defined
+    - _npm_global_installs.results is defined
+
+- name: Warn about global npm packages that failed to install
+  ansible.builtin.debug:
+    msg: "Global npm packages unavailable (rerun to retry): {{ _failed_npm_globals | join(', ') }}"
+  when: (_failed_npm_globals | default([])) | length > 0
 
 - name: Check whether pipx is available
   ansible.builtin.command:
