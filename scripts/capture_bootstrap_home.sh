@@ -75,6 +75,9 @@ if [ "$INCLUDE_PRIVATE" = "true" ]; then
     # .gemini 20M) around a few hundred bytes of actual credential.
     ".config/gh"
     ".config/stripe"
+    # rclone config holding the OneDrive OAuth token and the crypt key used by
+    # `dotfiles sessions` (session sync). Encrypted at rest in the vault.
+    ".config/rclone"
     ".kaggle"
     ".huggingface"
     ".docker/config.json"
