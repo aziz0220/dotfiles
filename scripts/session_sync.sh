@@ -1,46 +1,42 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# session_sync.sh — Sync AI coding-agent sessions across machines via a
-# private git repository (transport + backup).
+# session_sync.sh — Sync AI coding-agent sessions across machines through an
+# encrypted rclone remote (Cloudflare? no — OneDrive, via rclone crypt).
 #
 # Covers Claude Code (~/.claude) and Codex (~/.codex). Sessions are the agent's
-# own append-only JSONL transcripts, so git carries them safely.
+# own append-only JSONL transcripts.
+#
+# Transport: an rclone `crypt` remote (default `od-crypt:`) wrapped around
+# OneDrive. Filenames and contents are encrypted before they leave the machine,
+# so the cloud sees only ciphertext.
 #
 # Policy (deliberately conservative):
-#   push  — copies this machine's recent sessions INTO the repo, prunes the
-#           repo to the sync window (local copies are never deleted),
-#           commits and pushes. Concurrent pushes are retried.
-#   pull  — fast-forwards the repo, then copies sessions into the live dirs,
-#           backing up (not discarding) any local file it replaces.
-#   status— shows sync state and what is configured.
+#   push  — `rclone copy` this machine's sessions to the remote (add/update,
+#           never deletes anything on the remote).
+#   pull  — `rclone copy` the remote into the live dirs, moving any replaced
+#           local file into ~/.ai-sessions-backups/<timestamp>/ first.
+#   status— remote size + last local sync.
 #
-# Never synced: credentials/tokens, caches, telemetry.
+# Everything within the day window is synced; there is no size cap.
 #
 # Usage:
 #   session_sync.sh push|pull|status
 #
 # Environment:
-#   AI_SESSIONS_REPO   repo URL   (default https://github.com/aziz0220/ai-sessions.git)
-#   AI_SESSIONS_DIR    clone dir  (default ~/.ai-sessions)
-#   AI_SESSIONS_DAYS   sync sessions modified within this many days (default 30; 0 = all)
+#   AI_SESSIONS_REMOTE   rclone remote (default `od-crypt:`)
+#   AI_SESSIONS_DAYS     only sync files modified within N days (default 0 = all)
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
-REPO_URL="${AI_SESSIONS_REPO:-https://github.com/aziz0220/ai-sessions.git}"
-CLONE_DIR="${AI_SESSIONS_DIR:-$HOME/.ai-sessions}"
-# Window: sessions modified within this many days are synced. Older ones stay
-# local. 0 means "no time limit" (sync everything under the size cap).
-DAYS="${AI_SESSIONS_DAYS:-30}"
-# GitHub rejects files over 100 MB and warns over 50 MB. Sessions with huge
-# tool output can exceed this; they stay local-only rather than blocking sync.
-MAX_MB="${AI_SESSIONS_MAX_MB:-50}"
-BRANCH="${AI_SESSIONS_BRANCH:-main}"
+REMOTE="${AI_SESSIONS_REMOTE:-od-crypt:}"
+DAYS="${AI_SESSIONS_DAYS:-0}"
 
 CLAUDE_DIR="$HOME/.claude"
 CLAUDE_PROJECTS="$CLAUDE_DIR/projects"
 CLAUDE_MEMORY="$CLAUDE_DIR/CLAUDE.md"
 CODEX_SESSIONS="$HOME/.codex/sessions"
 BACKUP_ROOT="$HOME/.ai-sessions-backups"
+STATE_FILE="$HOME/.ai-sessions-state"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 log()  { printf "${GREEN}✓${NC} %s\n" "$1"; }
@@ -48,183 +44,83 @@ info() { printf "${CYAN}ℹ${NC} %s\n" "$1"; }
 warn() { printf "${YELLOW}⚠${NC} %s\n" "$1"; }
 err()  { printf "${RED}✗${NC} %s\n" "$1" >&2; }
 
-command -v git >/dev/null 2>&1 || { err "git is required"; exit 1; }
+command -v rclone >/dev/null 2>&1 || { err "rclone is not installed (run ./install or ./ansible-run)"; exit 1; }
 
-ensure_clone() {
-  if [ -d "$CLONE_DIR/.git" ]; then
-    return 0
+age_args() {
+  [ "$DAYS" -gt 0 ] && printf '%s\n' "--max-age" "${DAYS}d"
+}
+
+require_remote() {
+  if ! rclone lsd "$REMOTE" >/dev/null 2>&1; then
+    err "rclone remote '$REMOTE' is not reachable."
+    echo "  Configure it with 'rclone config' (see README: Sync AI sessions)." >&2
+    exit 1
   fi
-  info "Cloning $REPO_URL into $CLONE_DIR"
-  mkdir -p "$(dirname "$CLONE_DIR")"
-  git clone "$REPO_URL" "$CLONE_DIR"
 }
 
-remote_has_branch() {
-  git -C "$CLONE_DIR" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1
-}
-
-# Session files within the sync window, as paths relative to $dir. Recurses so
-# nested subagent/workflow transcripts are included, not just top-level sessions.
-window_files() {
-  local dir="$1"
-  [ -d "$dir" ] || return 0
-  local mtime_expr=()
-  [ "$DAYS" -gt 0 ] && mtime_expr=(-mtime "-${DAYS}")
-  ( cd "$dir" && find . -type f -name '*.jsonl' "${mtime_expr[@]}" -size "-${MAX_MB}M" -printf '%P\n' 2>/dev/null )
-}
-
-# Remove repo-side sessions that fell out of the window (local copies remain).
-prune_dir() {
-  local dir="$1"
-  [ -d "$dir" ] || return 0
-  if [ "$DAYS" -gt 0 ]; then
-    find "$dir" -type f -name '*.jsonl' ! -mtime "-${DAYS}" -delete 2>/dev/null || true
-  fi
-  find "$dir" -mindepth 1 -type d -empty -delete 2>/dev/null || true
-}
-
-# Remove any session that grew past the size cap so it cannot block a push.
-prune_oversized() {
-  local dir="$1"
-  [ -d "$dir" ] || return 0
-  find "$dir" -type f -name '*.jsonl' -size "+${MAX_MB}M" -delete 2>/dev/null || true
-}
-
-stage_claude() {
-  [ -d "$CLAUDE_PROJECTS" ] || return 0
-  local target="$CLONE_DIR/claude/projects"
-  mkdir -p "$target"
-  for project in "$CLAUDE_PROJECTS"/*/; do
-    [ -d "$project" ] || continue
-    local slug; slug="$(basename "$project")"
-    mkdir -p "$target/$slug"
-    while IFS= read -r rel; do
-      [ -n "$rel" ] || continue
-      mkdir -p "$target/$slug/$(dirname "$rel")"
-      cp -p "$project/$rel" "$target/$slug/$rel"
-    done < <(window_files "$project")
-    prune_dir "$target/$slug"
-    prune_oversized "$target/$slug"
-  done
-}
-
-stage_claude_memory() {
-  [ -f "$CLAUDE_MEMORY" ] || return 0
-  mkdir -p "$CLONE_DIR/claude"
-  cp -p "$CLAUDE_MEMORY" "$CLONE_DIR/claude/CLAUDE.md"
-}
-
-stage_codex() {
-  [ -d "$CODEX_SESSIONS" ] || return 0
-  mkdir -p "$CLONE_DIR/codex/sessions"
-  local mtime_expr=()
-  [ "$DAYS" -gt 0 ] && mtime_expr=(-mtime "-${DAYS}")
-  while IFS= read -r f; do
-    [ -n "$f" ] || continue
-    local rel="${f#"$CODEX_SESSIONS"/}"
-    mkdir -p "$CLONE_DIR/codex/sessions/$(dirname "$rel")"
-    cp -p "$f" "$CLONE_DIR/codex/sessions/$rel"
-  done < <(find "$CODEX_SESSIONS" -type f -name '*.jsonl' "${mtime_expr[@]}" -size "-${MAX_MB}M" -printf '%T@\t%p\n' 2>/dev/null | sort -rn | cut -f2-)
-  prune_oversized "$CLONE_DIR/codex/sessions"
-}
+stamp() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 cmd_push() {
-  ensure_clone
-  if remote_has_branch; then
-    git -C "$CLONE_DIR" fetch origin "$BRANCH" --quiet || true
-    git -C "$CLONE_DIR" checkout "$BRANCH" --quiet 2>/dev/null || true
-    git -C "$CLONE_DIR" reset --hard "origin/$BRANCH" --quiet 2>/dev/null || true
-  else
-    git -C "$CLONE_DIR" checkout -B "$BRANCH" --quiet 2>/dev/null || true
+  require_remote
+  if [ -d "$CLAUDE_PROJECTS" ]; then
+    # shellcheck disable=SC2046
+    rclone copy "$CLAUDE_PROJECTS" "$REMOTE/claude/projects" \
+      --create-empty-src-dirs $(age_args)
   fi
-
-  stage_claude
-  stage_claude_memory
-  stage_codex
-
-  git -C "$CLONE_DIR" add -A
-  if git -C "$CLONE_DIR" diff --cached --quiet; then
-    info "Nothing new to push."
-    return 0
+  if [ -f "$CLAUDE_MEMORY" ]; then
+    rclone copyto "$CLAUDE_MEMORY" "$REMOTE/claude/CLAUDE.md"
   fi
-  local count; count="$(git -C "$CLONE_DIR" diff --cached --name-only | wc -l | tr -d ' ')"
-  git -C "$CLONE_DIR" -c user.name="dotfiles" -c user.email="dotfiles@localhost" \
-    commit --quiet -m "sessions: $(hostname) $(date -u +%Y-%m-%dT%H:%M:%SZ) ($count files)"
-
-  local attempt
-  for attempt in 1 2 3; do
-    if git -C "$CLONE_DIR" push origin "$BRANCH" 2>/dev/null; then
-      log "Pushed $count session file(s) from $(hostname)"
-      return 0
-    fi
-    warn "Push rejected (attempt $attempt/3); re-syncing with remote."
-    git -C "$CLONE_DIR" fetch origin "$BRANCH" --quiet || true
-    git -C "$CLONE_DIR" pull --no-edit -X ours origin "$BRANCH" --quiet || true
-  done
-  err "Push failed after 3 attempts. Your local sessions are untouched; retry later."
-  exit 1
+  if [ -d "$CODEX_SESSIONS" ]; then
+    # shellcheck disable=SC2046
+    rclone copy "$CODEX_SESSIONS" "$REMOTE/codex/sessions" \
+      --create-empty-src-dirs $(age_args)
+  fi
+  printf 'LAST_PUSH=%s\n' "$(stamp)" >> "$STATE_FILE"
+  log "Pushed sessions from $(hostname) to $REMOTE"
 }
 
 cmd_pull() {
-  ensure_clone
-  if remote_has_branch; then
-    git -C "$CLONE_DIR" fetch origin "$BRANCH"
-    git -C "$CLONE_DIR" reset --hard "origin/$BRANCH" --quiet
-  else
-    warn "Remote branch '$BRANCH' does not exist yet — has anything been pushed?"
-    return 0
-  fi
-
-  local ts; ts="$(date -u +%Y%m%dT%H%M%SZ)"
+  require_remote
+  local ts; ts="$(stamp)"
   local backup_dir="$BACKUP_ROOT/$ts"
-  local changed=0
 
-  if [ -d "$CLONE_DIR/claude/projects" ]; then
+  if rclone lsf "$REMOTE/claude/projects" >/dev/null 2>&1; then
     mkdir -p "$CLAUDE_PROJECTS"
-    rsync -a --backup --backup-dir="$backup_dir/claude" \
-      "$CLONE_DIR/claude/projects/" "$CLAUDE_PROJECTS/"
-    changed=1
+    rclone copy "$REMOTE/claude/projects" "$CLAUDE_PROJECTS" \
+      --backup-dir="$backup_dir/claude"
+    find "$CLAUDE_PROJECTS" -type d -exec chmod 700 {} + 2>/dev/null || true
+    find "$CLAUDE_PROJECTS" -type f -exec chmod 600 {} + 2>/dev/null || true
   fi
-  if [ -f "$CLONE_DIR/claude/CLAUDE.md" ]; then
+  if rclone lsf "$REMOTE/claude/CLAUDE.md" >/dev/null 2>&1; then
     mkdir -p "$CLAUDE_DIR"
-    rsync -a --backup --backup-dir="$backup_dir/claude" \
-      "$CLONE_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
-    changed=1
+    rclone copyto "$REMOTE/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" \
+      --backup-dir="$backup_dir/claude"
   fi
-  if [ -d "$CLONE_DIR/codex/sessions" ]; then
+  if rclone lsf "$REMOTE/codex/sessions" >/dev/null 2>&1; then
     mkdir -p "$CODEX_SESSIONS"
-    rsync -a --backup --backup-dir="$backup_dir/codex" \
-      "$CLONE_DIR/codex/sessions/" "$CODEX_SESSIONS/"
-    changed=1
+    rclone copy "$REMOTE/codex/sessions" "$CODEX_SESSIONS" \
+      --backup-dir="$backup_dir/codex"
   fi
 
-  if [ "$changed" -eq 1 ]; then
-    log "Pulled sessions into $(hostname) (replaced files backed up under $backup_dir)"
-  else
-    info "Nothing in the repo to pull yet."
-  fi
+  printf 'LAST_PULL=%s\n' "$ts" >> "$STATE_FILE"
+  log "Pulled sessions into $(hostname)"
+  info "Replaced files (if any) were moved to $backup_dir"
   info "Claude Code login does not transfer across machines — run 'claude' then '/login'"
   info "once per machine; afterwards 'claude --continue' will find the synced sessions."
 }
 
 cmd_status() {
-  echo "repo:   $REPO_URL"
-  echo "clone:  $CLONE_DIR"
-  echo "window: last ${DAYS} days"
-  echo "max:    ${MAX_MB} MB per session (larger sessions stay local)"
-  if [ ! -d "$CLONE_DIR/.git" ]; then
-    info "not cloned yet (run: dotfiles sessions push)"
-    return 0
+  echo "remote: $REMOTE"
+  echo "window: $([ "$DAYS" -gt 0 ] && echo "last ${DAYS} days" || echo "all sessions")"
+  if command -v rclone >/dev/null 2>&1 && rclone lsd "$REMOTE" >/dev/null 2>&1; then
+    rclone size "$REMOTE" 2>/dev/null | sed 's/^/remote /'
+  else
+    warn "remote '$REMOTE' not reachable (is rclone configured?)"
   fi
-  local behind ahead
-  if remote_has_branch; then
-    git -C "$CLONE_DIR" fetch origin "$BRANCH" --quiet || true
-    behind="$(git -C "$CLONE_DIR" rev-list --count "HEAD..origin/$BRANCH" 2>/dev/null || echo 0)"
-    ahead="$(git -C "$CLONE_DIR" rev-list --count "origin/$BRANCH..HEAD" 2>/dev/null || echo 0)"
-    echo "sync:   ahead $ahead / behind $behind (branch $BRANCH)"
+  if [ -f "$STATE_FILE" ]; then
+    echo "local state:"
+    sed 's/^/  /' "$STATE_FILE" | tail -4
   fi
-  echo "last:   $(git -C "$CLONE_DIR" log -1 --format='%cr by %an' 2>/dev/null || echo none)"
-  echo "size:   $(du -sh "$CLONE_DIR" 2>/dev/null | cut -f1)"
 }
 
 case "${1:-status}" in
