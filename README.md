@@ -186,10 +186,10 @@ backup, not a workspace.
 ```
 
 Then resume with the agent's own command (`claude --continue` / `claude --resume`, `codex resume`).
-What syncs: `~/.claude/projects/**/*.jsonl`, `~/.claude/CLAUDE.md`, `~/.codex/sessions/**/*.jsonl`,
-keeping the newest `AI_SESSIONS_KEEP` (default 5) sessions per project. Oversized sessions
-(over `AI_SESSIONS_MAX_MB`, default 50) stay local. Credentials, tokens, caches, and telemetry are
-**never** synced.
+What syncs: `~/.claude/projects/**/*.jsonl`, `~/.claude/CLAUDE.md`, `~/.codex/sessions/**/*.jsonl`
+modified within the last `AI_SESSIONS_DAYS` (default 30) days. Sessions older than the window, or
+larger than `AI_SESSIONS_MAX_MB` (default 50), stay local. Credentials, tokens, caches, and
+telemetry are **never** synced.
 
 Two things to know:
 
@@ -432,7 +432,7 @@ DOTFILES_SKIP_FETCH=1 ./ansible-run   # offline, skip the check
 | `NEWPASS` | Vault rotation | New vault password (when using `rotate_vault_password.sh`) |
 | `AI_SESSIONS_REPO` | No | Session-sync repo URL (default `https://github.com/aziz0220/ai-sessions.git`) |
 | `AI_SESSIONS_DIR` | No | Session-sync clone directory (default `~/.ai-sessions`) |
-| `AI_SESSIONS_KEEP` | No | Sessions kept per project in the repo (default `5`) |
+| `AI_SESSIONS_DAYS` | No | Sync sessions modified within this many days (default `30`; `0` = all) |
 | `AI_SESSIONS_MAX_MB` | No | Skip sessions larger than this many MB (default `50`) |
 
 ### Tags

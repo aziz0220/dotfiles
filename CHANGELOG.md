@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `dotfiles sessions push|pull|status` — sync Claude Code and Codex session history across machines
-  through a private git repository (`scripts/session_sync.sh`), keeping the newest sessions per
-  project, skipping oversized ones, and backing up any local file a pull replaces
+  through a private git repository (`scripts/session_sync.sh`); syncs sessions modified in the last
+  30 days (`AI_SESSIONS_DAYS`), skips oversized ones (`AI_SESSIONS_MAX_MB`), and backs up any local
+  file a pull replaces
 - Hand-curated pip user-site tools (`vars/pip-user.yml`): uv, jupyter, playwright, git-filter-repo, kaggle
 - Custom tools added: Kimi Code CLI and Kiro CLI installers
 - `capture_bootstrap_home.sh` prunes regenerable caches (`.aws/*/cache`, `.kube/cache`) from the bundle
