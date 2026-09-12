@@ -63,15 +63,14 @@ remote_has_branch() {
   git -C "$CLONE_DIR" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1
 }
 
-# Session files modified within the sync window, newest first, one per line.
-window_sessions() {
+# Session files within the sync window, as paths relative to $dir. Recurses so
+# nested subagent/workflow transcripts are included, not just top-level sessions.
+window_files() {
   local dir="$1"
   [ -d "$dir" ] || return 0
   local mtime_expr=()
   [ "$DAYS" -gt 0 ] && mtime_expr=(-mtime "-${DAYS}")
-  find "$dir" -maxdepth 1 -type f -name '*.jsonl' "${mtime_expr[@]}" -size "-${MAX_MB}M" -printf '%T@\t%p\n' 2>/dev/null \
-    | sort -rn \
-    | cut -f2-
+  ( cd "$dir" && find . -type f -name '*.jsonl' "${mtime_expr[@]}" -size "-${MAX_MB}M" -printf '%P\n' 2>/dev/null )
 }
 
 # Remove repo-side sessions that fell out of the window (local copies remain).
@@ -79,8 +78,9 @@ prune_dir() {
   local dir="$1"
   [ -d "$dir" ] || return 0
   if [ "$DAYS" -gt 0 ]; then
-    find "$dir" -maxdepth 1 -type f -name '*.jsonl' ! -mtime "-${DAYS}" -delete 2>/dev/null || true
+    find "$dir" -type f -name '*.jsonl' ! -mtime "-${DAYS}" -delete 2>/dev/null || true
   fi
+  find "$dir" -mindepth 1 -type d -empty -delete 2>/dev/null || true
 }
 
 # Remove any session that grew past the size cap so it cannot block a push.
@@ -98,9 +98,11 @@ stage_claude() {
     [ -d "$project" ] || continue
     local slug; slug="$(basename "$project")"
     mkdir -p "$target/$slug"
-    while IFS= read -r f; do
-      [ -n "$f" ] && [ -f "$f" ] && cp -p "$f" "$target/$slug/"
-    done < <(window_sessions "$project")
+    while IFS= read -r rel; do
+      [ -n "$rel" ] || continue
+      mkdir -p "$target/$slug/$(dirname "$rel")"
+      cp -p "$project/$rel" "$target/$slug/$rel"
+    done < <(window_files "$project")
     prune_dir "$target/$slug"
     prune_oversized "$target/$slug"
   done
