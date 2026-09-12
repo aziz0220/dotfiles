@@ -7,8 +7,8 @@
 # own append-only JSONL transcripts, so git carries them safely.
 #
 # Policy (deliberately conservative):
-#   push  — copies this machine's most recent sessions INTO the repo, prunes the
-#           repo to the newest KEEP per project (local copies are never deleted),
+#   push  — copies this machine's recent sessions INTO the repo, prunes the
+#           repo to the sync window (local copies are never deleted),
 #           commits and pushes. Concurrent pushes are retried.
 #   pull  — fast-forwards the repo, then copies sessions into the live dirs,
 #           backing up (not discarding) any local file it replaces.
@@ -22,13 +22,15 @@
 # Environment:
 #   AI_SESSIONS_REPO   repo URL   (default https://github.com/aziz0220/ai-sessions.git)
 #   AI_SESSIONS_DIR    clone dir  (default ~/.ai-sessions)
-#   AI_SESSIONS_KEEP   sessions kept per project in the repo (default 5)
+#   AI_SESSIONS_DAYS   sync sessions modified within this many days (default 30; 0 = all)
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
 REPO_URL="${AI_SESSIONS_REPO:-https://github.com/aziz0220/ai-sessions.git}"
 CLONE_DIR="${AI_SESSIONS_DIR:-$HOME/.ai-sessions}"
-KEEP="${AI_SESSIONS_KEEP:-5}"
+# Window: sessions modified within this many days are synced. Older ones stay
+# local. 0 means "no time limit" (sync everything under the size cap).
+DAYS="${AI_SESSIONS_DAYS:-30}"
 # GitHub rejects files over 100 MB and warns over 50 MB. Sessions with huge
 # tool output can exceed this; they stay local-only rather than blocking sync.
 MAX_MB="${AI_SESSIONS_MAX_MB:-50}"
@@ -61,25 +63,24 @@ remote_has_branch() {
   git -C "$CLONE_DIR" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1
 }
 
-# Newest KEEP session files of a directory, one path per line.
-newest_sessions() {
+# Session files modified within the sync window, newest first, one per line.
+window_sessions() {
   local dir="$1"
   [ -d "$dir" ] || return 0
-  find "$dir" -maxdepth 1 -type f -name '*.jsonl' -size "-${MAX_MB}M" -printf '%T@\t%p\n' 2>/dev/null \
+  local mtime_expr=()
+  [ "$DAYS" -gt 0 ] && mtime_expr=(-mtime "-${DAYS}")
+  find "$dir" -maxdepth 1 -type f -name '*.jsonl' "${mtime_expr[@]}" -size "-${MAX_MB}M" -printf '%T@\t%p\n' 2>/dev/null \
     | sort -rn \
-    | head -n "$KEEP" \
     | cut -f2-
 }
 
-# Keep only the newest KEEP *.jsonl in a directory (repo side pruning).
+# Remove repo-side sessions that fell out of the window (local copies remain).
 prune_dir() {
   local dir="$1"
   [ -d "$dir" ] || return 0
-  find "$dir" -maxdepth 1 -type f -name '*.jsonl' -printf '%T@\t%p\n' 2>/dev/null \
-    | sort -rn \
-    | tail -n +"$((KEEP + 1))" \
-    | cut -f2- \
-    | while IFS= read -r f; do [ -n "$f" ] && rm -f "$f"; done
+  if [ "$DAYS" -gt 0 ]; then
+    find "$dir" -maxdepth 1 -type f -name '*.jsonl' ! -mtime "-${DAYS}" -delete 2>/dev/null || true
+  fi
 }
 
 # Remove any session that grew past the size cap so it cannot block a push.
@@ -99,7 +100,7 @@ stage_claude() {
     mkdir -p "$target/$slug"
     while IFS= read -r f; do
       [ -n "$f" ] && [ -f "$f" ] && cp -p "$f" "$target/$slug/"
-    done < <(newest_sessions "$project")
+    done < <(window_sessions "$project")
     prune_dir "$target/$slug"
     prune_oversized "$target/$slug"
   done
@@ -114,13 +115,14 @@ stage_claude_memory() {
 stage_codex() {
   [ -d "$CODEX_SESSIONS" ] || return 0
   mkdir -p "$CLONE_DIR/codex/sessions"
-  # Codex nests sessions under date directories; copy the newest KEEP overall.
+  local mtime_expr=()
+  [ "$DAYS" -gt 0 ] && mtime_expr=(-mtime "-${DAYS}")
   while IFS= read -r f; do
     [ -n "$f" ] || continue
     local rel="${f#"$CODEX_SESSIONS"/}"
     mkdir -p "$CLONE_DIR/codex/sessions/$(dirname "$rel")"
     cp -p "$f" "$CLONE_DIR/codex/sessions/$rel"
-  done < <(find "$CODEX_SESSIONS" -type f -name '*.jsonl' -size "-${MAX_MB}M" -printf '%T@\t%p\n' 2>/dev/null | sort -rn | head -n "$KEEP" | cut -f2-)
+  done < <(find "$CODEX_SESSIONS" -type f -name '*.jsonl' "${mtime_expr[@]}" -size "-${MAX_MB}M" -printf '%T@\t%p\n' 2>/dev/null | sort -rn | cut -f2-)
   prune_oversized "$CLONE_DIR/codex/sessions"
 }
 
@@ -206,7 +208,7 @@ cmd_pull() {
 cmd_status() {
   echo "repo:   $REPO_URL"
   echo "clone:  $CLONE_DIR"
-  echo "keep:   $KEEP sessions per project"
+  echo "window: last ${DAYS} days"
   echo "max:    ${MAX_MB} MB per session (larger sessions stay local)"
   if [ ! -d "$CLONE_DIR/.git" ]; then
     info "not cloned yet (run: dotfiles sessions push)"
