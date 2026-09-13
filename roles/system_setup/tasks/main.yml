@@ -65,8 +65,8 @@
     _is_wsl: "{{ 'microsoft' in (ansible_facts.kernel | lower) }}"
 
 - name: Restore WSL configuration
-  ansible.builtin.copy:
-    src: etc_wsl.conf
+  ansible.builtin.template:
+    src: etc_wsl.conf.j2
     dest: /etc/wsl.conf
     owner: root
     group: root

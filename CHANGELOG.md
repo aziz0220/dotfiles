@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ubuntu 26.04 compatibility treats obsolete snapshot libraries as release-inapplicable
 
 ### Fixed
+- The WSL configuration is now templated with `[user] default={{ user_name }}` instead of overwriting `/etc/wsl.conf` with a boot-only file that dropped the default login user (WSL then opened as `root` with an empty home)
 - The WSL Tailscale drop-in now creates `/etc/systemd/system/tailscaled.service.d` first, which CI never exercised (containers are not WSL) and which aborted provisioning on a fresh WSL machine
 - A single flaky global npm install (e.g. `vercel` failing with `ENOTEMPTY`) no longer aborts the whole provision; failed packages are listed and retried on the next run
 - Create supplemental groups by name without pinning captured GIDs, which collided with the primary group of any user whose uid differed from the capturing machine's and aborted user creation
